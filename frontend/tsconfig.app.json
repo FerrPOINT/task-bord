@@ -1,0 +1,43 @@
+{
+  "extends": "@vue/tsconfig/tsconfig.dom.json",
+  "include": [
+    "env.d.ts",
+    "env.config.d.ts",
+    "src/**/*.d.ts",
+    "src/**/*",
+    "src/**/*.vue",
+    "src/**/*.json",
+    "tailwind.config.js"
+  ],
+  "exclude": [
+    "src/**/__tests__/*",
+    "src/components/input/Multiselect.vue"
+  ],
+  "compilerOptions": {
+    "composite": false,
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "baseUrl": ".",
+    "lib": [
+      "ESNext",
+      "DOM",
+      "DOM.Iterable",
+      "WebWorker"
+    ],
+    "importHelpers": true,
+    "sourceMap": true,
+    "strictNullChecks": false,
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    },
+    "types": [],
+    "strict": false,
+    "noImplicitAny": false,
+    "noImplicitThis": false,
+    "useUnknownInCatchVariables": false,
+    "declaration": false,
+    "skipLibCheck": true,
+    "verbatimModuleSyntax": false
+  }
+}

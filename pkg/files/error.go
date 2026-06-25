@@ -1,0 +1,68 @@
+// Task Board is a self-hosted Kanban application.
+// Copyright 2026-present Task Board contributors. All rights reserved.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+package files
+
+import (
+	"fmt"
+	"net/http"
+
+	"github.com/FerrPOINT/task-bord/pkg/web"
+)
+
+// ErrFileDoesNotExist defines an error where a file does not exist in the db
+type ErrFileDoesNotExist struct {
+	FileID int64
+}
+
+// Error is the error implementation of ErrFileDoesNotExist
+func (err ErrFileDoesNotExist) Error() string {
+	return fmt.Sprintf("file %d does not exist", err.FileID)
+}
+
+// IsErrFileDoesNotExist checks if an error is ErrFileDoesNotExist
+func IsErrFileDoesNotExist(err error) bool {
+	_, ok := err.(ErrFileDoesNotExist)
+	return ok
+}
+
+// ErrFileIsTooLarge defines an error where a file is larger than the configured limit
+type ErrFileIsTooLarge struct {
+	Size uint64
+}
+
+// Error is the error implementation of ErrFileIsTooLarge
+func (err ErrFileIsTooLarge) Error() string {
+	return fmt.Sprintf("file is too large [Size: %d]", err.Size)
+}
+
+// IsErrFileIsTooLarge checks if an error is ErrFileIsTooLarge
+func IsErrFileIsTooLarge(err error) bool {
+	_, ok := err.(ErrFileIsTooLarge)
+	return ok
+}
+
+// ErrCodeFileIsTooLarge holds the unique world-error code of this error
+const ErrCodeFileIsTooLarge = 4013
+
+// HTTPError holds the http error description
+func (err ErrFileIsTooLarge) HTTPError() web.HTTPError {
+	return web.HTTPError{
+		HTTPCode: http.StatusRequestEntityTooLarge,
+		Code:     ErrCodeFileIsTooLarge,
+		Message:  "The uploaded file exceeds the maximum configured file size",
+	}
+}

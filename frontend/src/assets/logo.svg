@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256.8 256.8" width="256.8" height="256.8" role="img" xml:space="preserve">
+  <title>Task Board</title>
+  <desc>Task Board Logo: three Kanban columns.</desc>
+  <rect x="0" y="0" width="256.8" height="256.8" rx="48" fill="#3b82f6"/>
+  <rect x="40" y="52" width="48" height="152" rx="8" fill="#fff"/>
+  <rect x="104" y="88" width="48" height="116" rx="8" fill="#fff" fill-opacity=".85"/>
+  <rect x="168" y="124" width="48" height="80" rx="8" fill="#fff" fill-opacity=".7"/>
+</svg>

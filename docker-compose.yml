@@ -1,0 +1,41 @@
+services:
+  task-board:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: task-board
+    restart: unless-stopped
+    ports:
+      - "19876:3456"
+    environment:
+      TASKBOARD_SERVICE_PUBLICURL: http://192.168.1.135:19876/
+      TASKBOARD_SERVICE_ENABLEREGISTRATION: "true"
+      TASKBOARD_SERVICE_JWT_SECRET: "d3f4ault-s3cr3t-ch4ng3-m3"
+      TASKBOARD_DATABASE_TYPE: postgres
+      TASKBOARD_DATABASE_HOST: task-board-db
+      TASKBOARD_DATABASE_PORT: 5432
+      TASKBOARD_DATABASE_DATABASE: taskboard
+      TASKBOARD_DATABASE_USER: taskboard
+      TASKBOARD_DATABASE_PASSWORD: "t4skb04rd-p4ss"
+      TASKBOARD_LOG_ENABLED: "true"
+      TASKBOARD_LOG_STANDARD: stdout
+      TASKBOARD_SERVICE_ROOTPATH: /app/task-board/
+    volumes:
+      - task-board-files:/app/task-board/files
+    depends_on:
+      - task-board-db
+
+  task-board-db:
+    image: postgres:17-alpine
+    container_name: task-board-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: taskboard
+      POSTGRES_PASSWORD: "t4skb04rd-p4ss"
+      POSTGRES_DB: taskboard
+    volumes:
+      - task-board-db:/var/lib/postgresql/data
+
+volumes:
+  task-board-files:
+  task-board-db:
