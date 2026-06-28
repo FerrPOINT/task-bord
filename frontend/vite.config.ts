@@ -60,7 +60,7 @@ function getBuildConfig(env: Record<string, string>) {
 		// https://vitest.dev/config/
 		test: {
 			environment: 'happy-dom',
-			exclude: [...configDefaults.exclude, 'e2e/**'],
+			exclude: [...configDefaults.exclude, 'tests/e2e/**'],
 			'vitest.commandLine': 'pnpm test:unit',
 		},
 		css: {
