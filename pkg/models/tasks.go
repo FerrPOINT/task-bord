@@ -105,31 +105,13 @@ type Task struct {
 
 	UID string `xorm:"varchar(250) null" json:"-"`
 
-	// All related tasks, grouped by their relation kind
-	RelatedTasks RelatedTaskMap `xorm:"-" json:"related_tasks" readOnly:"true" doc:"Related tasks grouped by relation kind. Read-only here; use the task-relation endpoints to change relations."`
-
-	// All attachments this task has. This property is read-onlym, you must use the separate endpoint to add attachments to a task.
-	Attachments []*TaskAttachment `xorm:"-" json:"attachments" readOnly:"true" doc:"The task's attachments. Read-only here; use the attachment endpoints to add or remove them."`
-
-	// If this task has a cover image, the field will return the id of the attachment that is the cover image.
-	CoverImageAttachmentID int64 `xorm:"bigint default 0" json:"cover_image_attachment_id" doc:"The id of the attachment used as this task's cover image, or 0 for none."`
-
 	// True if a task is a favorite task. Favorite tasks show up in a separate "Important" project. This value depends on the user making the call to the api.
 	IsFavorite bool `xorm:"-" json:"is_favorite" doc:"Whether the requesting user has favorited this task. Per-user, so it differs between callers."`
-
-	IsUnread *bool `xorm:"-" json:"is_unread,omitempty" readOnly:"true" doc:"Whether the task is unread for the requesting user. Only present when requested via the is_unread expand option."`
 
 	// A timestamp when this task was created. You cannot change this value.
 	Created time.Time `xorm:"created not null" json:"created" readOnly:"true" doc:"When this task was created. Set by the server; ignored on write."`
 	// A timestamp when this task was last updated. You cannot change this value.
 	Updated time.Time `xorm:"updated not null" json:"updated" readOnly:"true" doc:"When this task was last updated. Set by the server; ignored on write."`
-
-	// The bucket id. Will only be populated when the task is accessed via a view with buckets.
-	// Can be used to move a task between buckets. In that case, the new bucket must be in the same view as the old one.
-	BucketID int64 `xorm:"-" json:"bucket_id" doc:"The bucket the task is in. Only populated when the task is accessed via a view with buckets. To move a task between buckets, the new bucket must be in the same view as the old one."`
-
-	// All buckets across all views this task is part of. Only present when fetching tasks with the `expand` parameter set to `buckets`.
-	Buckets []*Bucket `xorm:"-" json:"buckets,omitempty" readOnly:"true" doc:"The task's buckets across all views. Only present when requested via the buckets expand option."`
 
 	// All comments of this task. Only present when fetching tasks with the `expand` parameter set to `comments`.
 	Comments []*TaskComment `xorm:"-" json:"comments,omitempty" readOnly:"true" doc:"The task's first 50 comments. Only present when requested via the comments expand option."`
@@ -142,12 +124,6 @@ type Task struct {
 
 	// Behaves exactly the same as with the TaskCollection.Expand parameter
 	Expand []TaskCollectionExpandable `xorm:"-" json:"-" query:"expand"`
-
-	// The position of the task - any task project can be sorted as usual by this parameter.
-	// When accessing tasks via views with buckets, this is primarily used to sort them based on a range.
-	// Positions are always saved per view. They will automatically be set if you request the tasks through a view
-	// endpoint, otherwise they will always be 0. To update them, take a look at the Task Position endpoint.
-	Position float64 `xorm:"-" json:"position" readOnly:"true" doc:"The task's position, saved per view. Only non-zero when the task is fetched through a view endpoint; use the task-position endpoint to change it."`
 
 	// The user who initially created the task.
 	CreatedBy   *user.User `xorm:"-" json:"created_by" valid:"-" readOnly:"true" doc:"The user who created this task. Set by the server."`
@@ -204,10 +180,7 @@ type taskSearchOptions struct {
 	filterIncludeNulls bool
 	filter             string
 	filterTimezone     string
-	isSavedFilter      bool
 	projectIDs         []int64
-	expand             []TaskCollectionExpandable
-	projectViewID      int64
 }
 
 // ReadAll is a dummy function to still have that endpoint documented
@@ -321,7 +294,7 @@ func getRawTasksForProjects(s *xorm.Session, projects []*Project, a web.Auth, op
 	return tasks, len(tasks), totalItems, err
 }
 
-func getTasksForProjects(s *xorm.Session, projects []*Project, a web.Auth, opts *taskSearchOptions, view *ProjectView) (tasks []*Task, resultCount int, totalItems int64, err error) {
+func getTasksForProjects(s *xorm.Session, projects []*Project, a web.Auth, opts *taskSearchOptions) (tasks []*Task, resultCount int, totalItems int64, err error) {
 	tasks, resultCount, totalItems, err = getRawTasksForProjects(s, projects, a, opts)
 	if err != nil {
 		return nil, 0, 0, err
@@ -332,7 +305,7 @@ func getTasksForProjects(s *xorm.Session, projects []*Project, a web.Auth, opts 
 		taskMap[t.ID] = t
 	}
 
-	err = addMoreInfoToTasks(s, taskMap, a, view, opts.expand)
+	err = addMoreInfoToTasks(s, taskMap, a, opts.expand)
 	if err != nil {
 		return nil, 0, 0, err
 	}
@@ -650,273 +623,14 @@ func addRelatedTasksToTasks(s *xorm.Session, taskIDs []int64, taskMap map[int64]
 	return
 }
 
-func addBucketsToTasks(s *xorm.Session, a web.Auth, taskIDs []int64, taskMap map[int64]*Task) (err error) {
-	if len(taskIDs) == 0 {
-		return nil
-	}
-
-	taskBuckets := []*TaskBucket{}
-	err = s.
-		In("task_id", taskIDs).
-		Find(&taskBuckets)
-	if err != nil {
-		return err
-	}
-
-	buckets := make(map[int64]*Bucket)
-	err = s.
-		Where(builder.In("id", builder.Select("bucket_id").
-			From("task_buckets").
-			Where(builder.In("task_id", taskIDs)))).
-		And(builder.In("project_view_id", builder.Select("id").
-			From("project_views").
-			Where(accessibleProjectIDsSubquery(a, "project_views.project_id")))).
-		Find(&buckets)
-	if err != nil {
-		return err
-	}
-
-	for _, tb := range taskBuckets {
-		if taskMap[tb.TaskID].Buckets == nil {
-			taskMap[tb.TaskID].Buckets = []*Bucket{}
-		}
-		if bucket, exists := buckets[tb.BucketID]; exists {
-			taskMap[tb.TaskID].Buckets = append(taskMap[tb.TaskID].Buckets, bucket)
-		}
-	}
-
-	return nil
-}
 
 // This function takes a map with pointers and returns a slice with pointers to tasks
 // It adds more stuff like assignees/labels/etc to a bunch of tasks
 //
 //nolint:gocyclo
-func addMoreInfoToTasks(s *xorm.Session, taskMap map[int64]*Task, a web.Auth, view *ProjectView, expand []TaskCollectionExpandable) (err error) {
-
-	// No need to iterate over users and stuff if the project doesn't have tasks
-	if len(taskMap) == 0 {
-		return
-	}
-
-	// Get all users & task ids and put them into the array
-	var userIDs []int64
-	var taskIDs []int64
-	var projectIDs []int64
-	for _, i := range taskMap {
-		taskIDs = append(taskIDs, i.ID)
-		if i.CreatedByID != 0 {
-			userIDs = append(userIDs, i.CreatedByID)
-		}
-		projectIDs = append(projectIDs, i.ProjectID)
-	}
-
-	err = addAssigneesToTasks(s, taskIDs, taskMap)
-	if err != nil {
-		return
-	}
-
-	err = addLabelsToTasks(s, taskIDs, taskMap)
-	if err != nil {
-		return
-	}
-
-	err = addAttachmentsToTasks(s, taskIDs, taskMap)
-	if err != nil {
-		return
-	}
-
-	users, err := getUsersByIDsIgnoringLinkShares(s, userIDs)
-	if err != nil {
-		return
-	}
-
-	taskReminders, err := getTaskReminderMap(s, taskIDs)
-	if err != nil {
-		return err
-	}
-
-	taskFavorites, err := getFavorites(s, taskIDs, a, FavoriteKindTask)
-	if err != nil {
-		return err
-	}
-
-	// Get all identifiers
-	projects, err := GetProjectsMapByIDs(s, projectIDs)
-	if err != nil {
-		return err
-	}
-
-	var positionsMap = make(map[int64]*TaskPosition)
-	if view != nil {
-		positions, err := getPositionsForView(s, view)
-		if err != nil {
-			return err
-		}
-		for _, position := range positions {
-			positionsMap[position.TaskID] = position
-		}
-
-		// For saved filter views, ensure all tasks have positions
-		// This is a safety net - the cron job handles bulk position creation,
-		// but we need immediate positions for newly matching tasks
-		if GetSavedFilterIDFromProjectID(view.ProjectID) > 0 {
-			tasksNeedingPositions := make([]*Task, 0)
-			for _, task := range taskMap {
-				if _, hasPosition := positionsMap[task.ID]; !hasPosition {
-					tasksNeedingPositions = append(tasksNeedingPositions, task)
-				}
-			}
-
-			if len(tasksNeedingPositions) > 0 {
-				// Create positions for tasks that don't have them
-				if err = createPositionsForTasksInView(s, tasksNeedingPositions, view, a); err != nil {
-					return err
-				}
-
-				// Reload positions after creation
-				positions, err = getPositionsForView(s, view)
-				if err != nil {
-					return err
-				}
-				positionsMap = make(map[int64]*TaskPosition, len(positions))
-				for _, p := range positions {
-					positionsMap[p.TaskID] = p
-				}
-			}
-		}
-	}
-
-	var reactions map[int64]ReactionMap
-	if expand != nil {
-		expanded := make(map[TaskCollectionExpandable]bool)
-		for _, expandable := range expand {
-			if expanded[expandable] {
-				continue
-			}
-
-			switch expandable {
-			case TaskCollectionExpandSubtasks:
-				// already dealt with earlier
-			case TaskCollectionExpandBuckets:
-				err = addBucketsToTasks(s, a, taskIDs, taskMap)
-				if err != nil {
-					return err
-				}
-			case TaskCollectionExpandReactions:
-				reactions, err = getReactionsForEntityIDs(s, ReactionKindTask, taskIDs)
-				if err != nil {
-					return
-				}
-			case TaskCollectionExpandComments:
-				err = addCommentsToTasks(s, taskIDs, taskMap)
-				if err != nil {
-					return err
-				}
-			case TaskCollectionExpandCommentCount:
-				err = addCommentCountToTasks(s, taskIDs, taskMap)
-				if err != nil {
-					return err
-				}
-			case TaskCollectionExpandTimeEntriesCount:
-				err = addTimeEntriesCountToTasks(s, a, taskIDs, taskMap)
-				if err != nil {
-					return err
-				}
-			case TaskCollectionExpandIsUnread:
-				err = addIsUnreadToTasks(s, taskIDs, taskMap, a)
-				if err != nil {
-					return
-				}
-			}
-			expanded[expandable] = true
-		}
-	}
-
-	// Add all objects to their tasks
-	for _, task := range taskMap {
-
-		// Make created by user objects
-		if createdBy, has := users[task.CreatedByID]; has {
-			task.CreatedBy = createdBy
-		}
-
-		// Add the reminders
-		task.Reminders = taskReminders[task.ID]
-
-		// Prepare the subtasks
-		task.RelatedTasks = make(RelatedTaskMap)
-
-		// Build the task identifier from the project identifier and task index
-		task.setIdentifier(projects[task.ProjectID])
-
-		task.IsFavorite = taskFavorites[task.ID]
-
-		if reactions != nil {
-			r, has := reactions[task.ID]
-			if has {
-				task.Reactions = r
-			}
-		}
-
-		p, has := positionsMap[task.ID]
-		if has {
-			task.Position = p.Position
-		}
-	}
-
-	// Get all related tasks
-	err = addRelatedTasksToTasks(s, taskIDs, taskMap, a)
-	return
-}
 
 // Checks if adding a new task would exceed the bucket limit
-func checkBucketLimit(s *xorm.Session, a web.Auth, t *Task, bucket *Bucket) (taskCount int64, err error) {
-	view, err := GetProjectViewByID(s, bucket.ProjectViewID)
-	if err != nil {
-		return 0, err
-	}
 
-	if view.ProjectID < 0 || (view.Filter != nil && view.Filter.Filter != "") {
-		// For saved filters or views with a filter, the count must be scoped to
-		// this bucket *and* the filter: raw task_buckets rows can include tasks
-		// that no longer match the filter (#355), while the unscoped filter total
-		// counts tasks across all buckets, not just this one (#2672). ReadAll
-		// combines the bucket_id condition with the saved-filter / view filter.
-		tc := &TaskCollection{
-			ProjectID:     view.ProjectID,
-			ProjectViewID: bucket.ProjectViewID,
-			Filter:        "bucket_id = " + strconv.FormatInt(bucket.ID, 10),
-		}
-
-		_, _, taskCount, err = tc.ReadAll(s, a, "", 1, 1)
-		if err != nil {
-			return 0, err
-		}
-	} else {
-		taskCount, err = s.
-			Where("bucket_id = ?", bucket.ID).
-			GroupBy("task_id").
-			Count(&TaskBucket{})
-		if err != nil {
-			return 0, err
-		}
-	}
-
-	if bucket.Limit > 0 && taskCount >= bucket.Limit {
-		return 0, ErrBucketLimitExceeded{TaskID: t.ID, BucketID: bucket.ID, Limit: bucket.Limit}
-	}
-
-	return
-}
-
-func calculateDefaultPosition(entityID int64, position float64) float64 {
-	if position == 0 {
-		return float64(entityID) * math.Pow(2, 16)
-	}
-
-	return position
-}
 
 func calculateNextTaskIndex(s *xorm.Session, projectID int64) (nextIndex int64, err error) {
 	latestTask := &Task{}
@@ -1089,74 +803,6 @@ func createTask(s *xorm.Session, t *Task, a web.Auth, updateAssignees bool, setB
 	return
 }
 
-func setTaskInBucketInViews(s *xorm.Session, t *Task, a web.Auth, setBucket bool, providedBucket *Bucket) ([]*TaskPosition, []*TaskBucket, error) {
-	views, err := getViewsForProject(s, t.ProjectID)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	positions := []*TaskPosition{}
-	taskBuckets := []*TaskBucket{}
-
-	var moveToDone bool
-
-	for _, view := range views {
-		if setBucket && !moveToDone &&
-			view.ViewKind == ProjectViewKindKanban &&
-			view.BucketConfigurationMode == BucketConfigurationModeManual {
-
-			bucketID := view.DoneBucketID
-			if !t.Done || view.DoneBucketID == 0 {
-				if providedBucket != nil && view.ID == providedBucket.ProjectViewID {
-					bucketID = providedBucket.ID
-				} else {
-					bucketID, err = getDefaultBucketID(s, view)
-					if err != nil {
-						return nil, nil, err
-					}
-				}
-			}
-
-			if view.DoneBucketID != 0 && view.DoneBucketID == t.BucketID && !t.Done {
-				t.Done = true
-				_, err = s.Where("id = ?", t.ID).
-					Cols("done").
-					Update(t)
-				if err != nil {
-					return nil, nil, err
-				}
-
-				err = t.moveTaskToDoneBuckets(s, a, views)
-				if err != nil {
-					return nil, nil, err
-				}
-
-				moveToDone = true
-
-				continue
-			}
-
-			taskBuckets = append(taskBuckets, &TaskBucket{
-				BucketID:      bucketID,
-				TaskID:        t.ID,
-				ProjectViewID: view.ID,
-			})
-		}
-
-		newPosition, err := calculateNewPositionForTask(s, a, t, view)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		positions = append(positions, newPosition)
-	}
-
-	if moveToDone {
-		taskBuckets = []*TaskBucket{}
-	}
-
-	return positions, taskBuckets, nil
-}
 
 // Update updates a project task
 // @Summary Update a task

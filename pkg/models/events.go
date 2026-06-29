@@ -141,40 +141,6 @@ func (t *TaskAttachmentDeletedEvent) Name() string {
 	return "task.attachment.deleted"
 }
 
-// TaskRelationCreatedEvent represents a TaskRelationCreatedEvent event
-type TaskRelationCreatedEvent struct {
-	Task     *Task         `json:"task"`
-	Relation *TaskRelation `json:"relation"`
-	Doer     *user.User    `json:"doer"`
-}
-
-// Name defines the name for TaskRelationCreatedEvent
-func (t *TaskRelationCreatedEvent) Name() string {
-	return "task.relation.created"
-}
-
-// TaskRelationDeletedEvent represents a TaskRelationDeletedEvent event
-type TaskRelationDeletedEvent struct {
-	Task     *Task         `json:"task"`
-	Relation *TaskRelation `json:"relation"`
-	Doer     *user.User    `json:"doer"`
-}
-
-// Name defines the name for TaskRelationDeletedEvent
-func (t *TaskRelationDeletedEvent) Name() string {
-	return "task.relation.deleted"
-}
-
-// TaskPositionsRecalculatedEvent represents a TaskPositionsRecalculatedEvent event
-type TaskPositionsRecalculatedEvent struct {
-	NewTaskPositions []*TaskPosition
-}
-
-// Name defines the name for TaskPositionsRecalculatedEvent
-func (t *TaskPositionsRecalculatedEvent) Name() string {
-	return "task.positions.recalculated"
-}
-
 ////////////////////
 // Project Events //
 ////////////////////
@@ -228,77 +194,7 @@ func (p *ProjectSharedWithUserEvent) Name() string {
 	return "project.shared.user"
 }
 
-// ProjectSharedWithTeamEvent represents an event where a project has been shared with a team
-type ProjectSharedWithTeamEvent struct {
-	Project *Project   `json:"project"`
-	Team    *Team      `json:"team"`
-	Doer    *user.User `json:"doer"`
-}
 
-// Name defines the name for ProjectSharedWithTeamEvent
-func (p *ProjectSharedWithTeamEvent) Name() string {
-	return "project.shared.team"
-}
-
-/////////////////
-// Team Events //
-/////////////////
-
-// TeamMemberAddedEvent defines an event where a user is added to a team
-type TeamMemberAddedEvent struct {
-	Team   *Team      `json:"team"`
-	Member *user.User `json:"member"`
-	Doer   *user.User `json:"doer"`
-}
-
-// Name defines the name for TeamMemberAddedEvent
-func (t *TeamMemberAddedEvent) Name() string {
-	return "team.member.added"
-}
-
-// TeamMemberRemovedEvent defines an event where a user is removed from a team
-type TeamMemberRemovedEvent struct {
-	Team   *Team      `json:"team"`
-	Member *user.User `json:"member"`
-	Doer   *user.User `json:"doer"`
-}
-
-// Name defines the name for TeamMemberRemovedEvent
-func (t *TeamMemberRemovedEvent) Name() string {
-	return "team.member.removed"
-}
-
-// TeamCreatedEvent represents a TeamCreatedEvent event
-type TeamCreatedEvent struct {
-	Team *Team      `json:"team"`
-	Doer *user.User `json:"doer"`
-}
-
-// Name defines the name for TeamCreatedEvent
-func (t *TeamCreatedEvent) Name() string {
-	return "team.created"
-}
-
-// TeamDeletedEvent represents a TeamDeletedEvent event
-type TeamDeletedEvent struct {
-	Team *Team      `json:"team"`
-	Doer *user.User `json:"doer"`
-}
-
-// Name defines the name for TeamDeletedEvent
-func (t *TeamDeletedEvent) Name() string {
-	return "team.deleted"
-}
-
-// UserDataExportRequestedEvent represents a UserDataExportRequestedEvent event
-type UserDataExportRequestedEvent struct {
-	User *user.User `json:"user"`
-}
-
-// Name defines the name for UserDataExportRequestedEvent
-func (t *UserDataExportRequestedEvent) Name() string {
-	return "user.export.requested"
-}
 
 
 

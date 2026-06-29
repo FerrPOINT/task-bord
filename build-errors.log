@@ -1,12 +1,12 @@
 # github.com/FerrPOINT/task-bord/pkg/models
-pkg/models/project.go:75:16: undefined: Subscription
-pkg/models/error.go:2024:13: undefined: SubscriptionEntityType
-pkg/models/error.go:2052:13: undefined: SubscriptionEntityType
-pkg/models/tasks.go:517:75: undefined: TaskReminder
-pkg/models/tasks.go:605:87: undefined: TaskReminder
-pkg/models/admin_user_actions.go:105:14: undefined: user.RequestDeletion
-pkg/models/export.go:116:34: undefined: DataExportReadyNotification
-pkg/models/listeners.go:134:8: undefined: TaskCommentNotification
-pkg/models/listeners.go:185:22: undefined: GetSubscriptionsForEntity
-pkg/models/listeners.go:185:54: undefined: SubscriptionEntityTask
-pkg/models/listeners.go:185:54: too many errors
+pkg/models/tasks.go:126:11: undefined: TaskCollectionExpandable
+pkg/models/tasks.go:185:23: undefined: TaskCollectionExpandable
+pkg/models/tasks.go:1188:76: undefined: ProjectView
+pkg/models/tasks.go:1251:79: undefined: ProjectView
+pkg/models/permissions.go:41:31: cannot use r (variable of int type Permission) as int value in struct literal
+pkg/models/project.go:155:7: p.Expand undefined (type *Project has no field or method Expand)
+pkg/models/project.go:305:5: p.Views undefined (type *Project has no field or method Views)
+pkg/models/project.go:305:36: FavoritesPseudoProject.Views undefined (type Project has no field or method Views)
+pkg/models/project.go:311:14: undefined: GetSavedFilterIDFromProjectID
+pkg/models/project.go:314:14: undefined: GetSavedFilterSimpleByID
+pkg/models/project.go:314:14: too many errors

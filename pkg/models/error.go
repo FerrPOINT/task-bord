@@ -793,7 +793,7 @@ func (err ErrParentTaskCannotBeTheSame) HTTPError() web.HTTPError {
 
 // ErrInvalidRelationKind represents an error where the user tries to use an invalid relation kind
 type ErrInvalidRelationKind struct {
-	Kind RelationKind
+	Kind string
 }
 
 // IsErrInvalidRelationKind checks if an error is ErrInvalidRelationKind.
@@ -820,7 +820,7 @@ func (err ErrInvalidRelationKind) HTTPError() web.HTTPError {
 
 // ErrRelationAlreadyExists represents an error where the user tries to create an already existing relation
 type ErrRelationAlreadyExists struct {
-	Kind        RelationKind
+	Kind        string
 	TaskID      int64
 	OtherTaskID int64
 }
@@ -849,7 +849,7 @@ func (err ErrRelationAlreadyExists) HTTPError() web.HTTPError {
 
 // ErrRelationDoesNotExist represents an error where a task relation does not exist.
 type ErrRelationDoesNotExist struct {
-	Kind        RelationKind
+	Kind        string
 	TaskID      int64
 	OtherTaskID int64
 }
@@ -900,36 +900,36 @@ func (err ErrRelationTasksCannotBeTheSame) HTTPError() web.HTTPError {
 	return web.HTTPError{
 		HTTPCode: http.StatusBadRequest,
 		Code:     ErrCodeRelationTasksCannotBeTheSame,
-		Message:  "You cannot relate a task with itself",
+		Message:  "You cannot relate a task with itself.",
 	}
 }
 
-// ErrTaskAttachmentDoesNotExist represents an error where the user tries to relate a task with itself
-type ErrTaskAttachmentDoesNotExist struct {
-	TaskID       int64
-	AttachmentID int64
-	FileID       int64
+// ErrTaskRelationCycle represents an error where the user tries to create an already existing relation
+type ErrTaskRelationCycle struct {
+	Kind        string
+	TaskID      int64
+	OtherTaskID int64
 }
 
-// IsErrTaskAttachmentDoesNotExist checks if an error is ErrTaskAttachmentDoesNotExist.
-func IsErrTaskAttachmentDoesNotExist(err error) bool {
-	_, ok := err.(ErrTaskAttachmentDoesNotExist)
+// IsErrTaskRelationCycle checks if an error is ErrTaskRelationCycle.
+func IsErrTaskRelationCycle(err error) bool {
+	_, ok := err.(ErrTaskRelationCycle)
 	return ok
 }
 
-func (err ErrTaskAttachmentDoesNotExist) Error() string {
-	return fmt.Sprintf("Task attachment does not exist [TaskID: %d, AttachmentID: %d, FileID: %d]", err.TaskID, err.AttachmentID, err.FileID)
+func (err ErrTaskRelationCycle) Error() string {
+	return fmt.Sprintf("Task relation cycle detectetd [TaskID: %v, OtherTaskID: %v, Kind: %v]", err.TaskID, err.OtherTaskID, err.Kind)
 }
 
-// ErrCodeTaskAttachmentDoesNotExist holds the unique world-error code of this error
-const ErrCodeTaskAttachmentDoesNotExist = 4011
+// ErrCodeTaskRelationCycle holds the unique world-error code of this error
+const ErrCodeTaskRelationCycle = 4023
 
 // HTTPError holds the http error description
-func (err ErrTaskAttachmentDoesNotExist) HTTPError() web.HTTPError {
+func (err ErrTaskRelationCycle) HTTPError() web.HTTPError {
 	return web.HTTPError{
-		HTTPCode: http.StatusNotFound,
-		Code:     ErrCodeTaskAttachmentDoesNotExist,
-		Message:  "This task attachment does not exist.",
+		HTTPCode: http.StatusConflict,
+		Code:     ErrCodeTaskRelationCycle,
+		Message:  "This task relation would create a cycle.",
 	}
 }
 
@@ -989,7 +989,7 @@ func (err ErrInvalidSortParam) HTTPError() web.HTTPError {
 
 // ErrInvalidSortOrder represents an error where the provided sort order is invalid
 type ErrInvalidSortOrder struct {
-	OrderBy sortOrder
+	OrderBy string
 }
 
 // IsErrInvalidSortOrder checks if an error is ErrInvalidSortOrder.
@@ -1071,7 +1071,7 @@ func (err ErrInvalidTaskField) HTTPError() web.HTTPError {
 
 // ErrInvalidTaskFilterComparator represents an error where the provided task field is invalid
 type ErrInvalidTaskFilterComparator struct {
-	Comparator taskFilterComparator
+	Comparator string
 }
 
 // IsErrInvalidTaskFilterComparator checks if an error is ErrInvalidTaskFilterComparator.
@@ -1098,7 +1098,7 @@ func (err ErrInvalidTaskFilterComparator) HTTPError() web.HTTPError {
 
 // ErrInvalidTaskFilterConcatinator represents an error where the provided task field is invalid
 type ErrInvalidTaskFilterConcatinator struct {
-	Concatinator taskFilterConcatinator
+	Concatinator string
 }
 
 // IsErrInvalidTaskFilterConcatinator checks if an error is ErrInvalidTaskFilterConcatinator.
@@ -1176,191 +1176,6 @@ func (err ErrAttachmentDoesNotBelongToTask) HTTPError() web.HTTPError {
 		HTTPCode: http.StatusBadRequest,
 		Code:     ErrCodeAttachmentDoesNotBelongToTask,
 		Message:  "This attachment does not belong to that task.",
-	}
-}
-
-// ErrUserAlreadyAssigned represents an error where the user is already assigned to this task
-type ErrUserAlreadyAssigned struct {
-	TaskID int64
-	UserID int64
-}
-
-// IsErrUserAlreadyAssigned checks if an error is ErrUserAlreadyAssigned.
-func IsErrUserAlreadyAssigned(err error) bool {
-	_, ok := err.(ErrUserAlreadyAssigned)
-	return ok
-}
-
-func (err ErrUserAlreadyAssigned) Error() string {
-	return fmt.Sprintf("User is already assigned to task [TaskID: %d, ID: %d]", err.TaskID, err.UserID)
-}
-
-// ErrCodeUserAlreadyAssigned holds the unique world-error code of this error
-const ErrCodeUserAlreadyAssigned = 4021
-
-// HTTPError holds the http error description
-func (err ErrUserAlreadyAssigned) HTTPError() web.HTTPError {
-	return web.HTTPError{
-		HTTPCode: http.StatusBadRequest,
-		Code:     ErrCodeUserAlreadyAssigned,
-		Message:  "This user is already assigned to that task.",
-	}
-}
-
-// ErrReminderRelativeToMissing represents an error where a task has a relative reminder without reference date
-type ErrReminderRelativeToMissing struct {
-	TaskID int64
-}
-
-// IsErrReminderRelativeToMissing checks if an error is ErrReminderRelativeToMissing.
-func IsErrReminderRelativeToMissing(err error) bool {
-	_, ok := err.(ErrReminderRelativeToMissing)
-	return ok
-}
-
-func (err ErrReminderRelativeToMissing) Error() string {
-	return fmt.Sprintf("Task [TaskID: %v] has a relative reminder without relative_to", err.TaskID)
-}
-
-// ErrCodeRelationDoesNotExist holds the unique world-error code of this error
-const ErrCodeReminderRelativeToMissing = 4022
-
-// HTTPError holds the http error description
-func (err ErrReminderRelativeToMissing) HTTPError() web.HTTPError {
-	return web.HTTPError{
-		HTTPCode: http.StatusBadRequest,
-		Code:     ErrCodeReminderRelativeToMissing,
-		Message:  "Please provide what the reminder date is relative to",
-	}
-}
-
-// ErrTaskRelationCycle represents an error where the user tries to create an already existing relation
-type ErrTaskRelationCycle struct {
-	Kind        RelationKind
-	TaskID      int64
-	OtherTaskID int64
-}
-
-// IsErrTaskRelationCycle checks if an error is ErrTaskRelationCycle.
-func IsErrTaskRelationCycle(err error) bool {
-	_, ok := err.(ErrTaskRelationCycle)
-	return ok
-}
-
-func (err ErrTaskRelationCycle) Error() string {
-	return fmt.Sprintf("Task relation cycle detectetd [TaskID: %v, OtherTaskID: %v, Kind: %v]", err.TaskID, err.OtherTaskID, err.Kind)
-}
-
-// ErrCodeTaskRelationCycle holds the unique world-error code of this error
-const ErrCodeTaskRelationCycle = 4023
-
-// HTTPError holds the http error description
-func (err ErrTaskRelationCycle) HTTPError() web.HTTPError {
-	return web.HTTPError{
-		HTTPCode: http.StatusConflict,
-		Code:     ErrCodeTaskRelationCycle,
-		Message:  "This task relation would create a cycle.",
-	}
-}
-
-// ErrInvalidFilterExpression represents an error where the task filter expression was invalid
-type ErrInvalidFilterExpression struct {
-	Expression      string
-	ExpressionError error
-}
-
-// IsErrInvalidFilterExpression checks if an error is ErrInvalidFilterExpression.
-func IsErrInvalidFilterExpression(err error) bool {
-	_, ok := err.(ErrInvalidFilterExpression)
-	return ok
-}
-
-func (err ErrInvalidFilterExpression) Error() string {
-	return fmt.Sprintf("Task filter expression '%s' is invalid [ExpressionError: %v]", err.Expression, err.ExpressionError)
-}
-
-// ErrCodeInvalidFilterExpression holds the unique world-error code of this error
-const ErrCodeInvalidFilterExpression = 4024
-
-// HTTPError holds the http error description
-func (err ErrInvalidFilterExpression) HTTPError() web.HTTPError {
-	return web.HTTPError{
-		HTTPCode: http.StatusBadRequest,
-		Code:     ErrCodeInvalidFilterExpression,
-		Message:  fmt.Sprintf("The filter expression '%s' is invalid: %v", err.Expression, err.ExpressionError),
-	}
-}
-
-// ErrInvalidReactionEntityKind represents an error where the reaction kind is invalid
-type ErrInvalidReactionEntityKind struct {
-	Kind string
-}
-
-// IsErrInvalidReactionEntityKind checks if an error is ErrInvalidReactionEntityKind.
-func IsErrInvalidReactionEntityKind(err error) bool {
-	_, ok := err.(ErrInvalidReactionEntityKind)
-	return ok
-}
-
-func (err ErrInvalidReactionEntityKind) Error() string {
-	return fmt.Sprintf("Reaction kind %s is invalid", err.Kind)
-}
-
-// ErrCodeInvalidReactionEntityKind holds the unique world-error code of this error
-const ErrCodeInvalidReactionEntityKind = 4025
-
-// HTTPError holds the http error description
-func (err ErrInvalidReactionEntityKind) HTTPError() web.HTTPError {
-	return web.HTTPError{
-		HTTPCode: http.StatusBadRequest,
-		Code:     ErrCodeInvalidReactionEntityKind,
-		Message:  fmt.Sprintf("The reaction kind '%s' is invalid.", err.Kind),
-	}
-}
-
-// ErrMustHaveProjectViewToSortByPosition represents an error where no project view id was supplied
-type ErrMustHaveProjectViewToSortByPosition struct{}
-
-func (err ErrMustHaveProjectViewToSortByPosition) Error() string {
-	return "You must provide a project view ID when sorting by position"
-}
-
-// ErrCodeMustHaveProjectViewToSortByPosition holds the unique world-error code of this error
-const ErrCodeMustHaveProjectViewToSortByPosition = 4026
-
-// HTTPError holds the http error description
-func (err ErrMustHaveProjectViewToSortByPosition) HTTPError() web.HTTPError {
-	return web.HTTPError{
-		HTTPCode: http.StatusBadRequest,
-		Code:     ErrCodeMustHaveProjectViewToSortByPosition,
-		Message:  "You must provide a project view ID when sorting by position",
-	}
-}
-
-// ErrInvalidTaskColumn represents an error where the provided task column is invalid
-type ErrInvalidTaskColumn struct {
-	Column string
-}
-
-// IsErrInvalidTaskColumn checks if an error is ErrInvalidTaskColumn.
-func IsErrInvalidTaskColumn(err error) bool {
-	_, ok := err.(ErrInvalidTaskColumn)
-	return ok
-}
-
-func (err ErrInvalidTaskColumn) Error() string {
-	return fmt.Sprintf("Task column %s is invalid", err.Column)
-}
-
-// ErrCodeInvalidTaskColumn holds the unique world-error code of this error
-const ErrCodeInvalidTaskColumn = 4027
-
-// HTTPError holds the http error description
-func (err ErrInvalidTaskColumn) HTTPError() web.HTTPError {
-	return web.HTTPError{
-		HTTPCode: http.StatusBadRequest,
-		Code:     ErrCodeInvalidTaskColumn,
-		Message:  fmt.Sprintf("The task field '%s' is invalid.", err.Column),
 	}
 }
 
@@ -1758,7 +1573,7 @@ func (err ErrUserHasNoAccessToLabel) HTTPError() web.HTTPError {
 
 // ErrInvalidPermission represents an error where a permission is invalid
 type ErrInvalidPermission struct {
-	Permission Permission
+	Permission int
 }
 
 // IsErrInvalidPermission checks if an error is ErrInvalidPermission.

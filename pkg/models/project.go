@@ -73,8 +73,8 @@ type Project struct {
 	// The position this project has when querying all projects. See the tasks.position property on how to use this.
 	Position float64 `xorm:"double null" json:"position" doc:"The position of this project when listing all projects. See the tasks.position property for how positions work."`
 
-	Expand        ProjectExpandable `xorm:"-" json:"-" query:"expand"`
-	MaxPermission Permission        `xorm:"-" json:"max_permission" readOnly:"true" doc:"The maximum permission the requesting user has on this project (0 = read, 1 = read/write, 2 = admin)."`
+	// The maximum permission the requesting user has on this project (0 = read, 1 = read/write, 2 = admin).
+	MaxPermission Permission `xorm:"-" json:"max_permission" readOnly:"true" doc:"The maximum permission the requesting user has on this project (0 = read, 1 = read/write, 2 = admin)."`
 
 	// A timestamp when this project was created. You cannot change this value.
 	Created time.Time `xorm:"created not null" json:"created" readOnly:"true" doc:"A timestamp when this project was created. You cannot change this value."`
@@ -95,11 +95,6 @@ type ProjectWithTasksAndBuckets struct {
 
 	// An array of tasks which belong to the project.
 	Tasks []*TaskWithComments `xorm:"-" json:"tasks"`
-	// Only used for migration.
-	Buckets          []*Bucket       `xorm:"-" json:"buckets"`
-	TaskBuckets      []*TaskBucket   `xorm:"-" json:"task_buckets"`
-	Positions        []*TaskPosition `xorm:"-" json:"positions"`
-	BackgroundFileID int64           `xorm:"null" json:"background_file_id"`
 }
 
 // TableName returns a better name for the projects table
