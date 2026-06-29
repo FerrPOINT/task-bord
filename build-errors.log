@@ -1,0 +1,12 @@
+# github.com/FerrPOINT/task-bord/pkg/models
+pkg/models/project.go:75:16: undefined: Subscription
+pkg/models/error.go:2024:13: undefined: SubscriptionEntityType
+pkg/models/error.go:2052:13: undefined: SubscriptionEntityType
+pkg/models/tasks.go:80:15: undefined: TaskReminder
+pkg/models/tasks.go:125:16: undefined: Subscription
+pkg/models/tasks.go:158:12: undefined: ReactionMap
+pkg/models/tasks.go:525:75: undefined: TaskReminder
+pkg/models/tasks.go:613:87: undefined: TaskReminder
+pkg/models/task_comments.go:39:12: undefined: ReactionMap
+pkg/models/admin_user_actions.go:105:14: undefined: user.RequestDeletion
+pkg/models/admin_user_actions.go:105:14: too many errors

@@ -76,8 +76,7 @@ type Task struct {
 	DoneAt time.Time `xorm:"INDEX null 'done_at'" json:"done_at" readOnly:"true" doc:"When the task was marked as done. Set by the server; ignored on write."`
 	// The time when the task is due.
 	DueDate time.Time `xorm:"DATETIME INDEX null 'due_date'" json:"due_date"`
-	// An array of reminders that are associated with this task.
-	Reminders []*TaskReminder `xorm:"-" json:"reminders"`
+
 	// The project this task belongs to.
 	ProjectID int64 `xorm:"bigint INDEX not null unique(tasks_project_index)" json:"project_id" param:"project" doc:"The id of the project this task belongs to. On create it is taken from the URL; on update, setting it to a different project moves the task (requires write access to the target project)."`
 	// An amount in seconds this task repeats itself. If this is set, when marking the task as done, it will mark itself as "undone" and then increase all remindes and the due date by its amount.
@@ -120,10 +119,6 @@ type Task struct {
 
 	IsUnread *bool `xorm:"-" json:"is_unread,omitempty" readOnly:"true" doc:"Whether the task is unread for the requesting user. Only present when requested via the is_unread expand option."`
 
-	// The subscription status for the user reading this task. You can only read this property, use the subscription endpoints to modify it.
-	// Will only returned when retrieving one task.
-	Subscription *Subscription `xorm:"-" json:"subscription,omitempty" readOnly:"true" doc:"The requesting user's subscription to this task. Read-only here; use the subscription endpoints to change it. Only present when reading a single task."`
-
 	// A timestamp when this task was created. You cannot change this value.
 	Created time.Time `xorm:"created not null" json:"created" readOnly:"true" doc:"When this task was created. Set by the server; ignored on write."`
 	// A timestamp when this task was last updated. You cannot change this value.
@@ -153,9 +148,6 @@ type Task struct {
 	// Positions are always saved per view. They will automatically be set if you request the tasks through a view
 	// endpoint, otherwise they will always be 0. To update them, take a look at the Task Position endpoint.
 	Position float64 `xorm:"-" json:"position" readOnly:"true" doc:"The task's position, saved per view. Only non-zero when the task is fetched through a view endpoint; use the task-position endpoint to change it."`
-
-	// Reactions on that task.
-	Reactions ReactionMap `xorm:"-" json:"reactions" readOnly:"true" doc:"Reactions on this task. Only present when requested via the reactions expand option."`
 
 	// The user who initially created the task.
 	CreatedBy   *user.User `xorm:"-" json:"created_by" valid:"-" readOnly:"true" doc:"The user who created this task. Set by the server."`

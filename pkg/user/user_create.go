@@ -22,7 +22,6 @@ import (
 
 	"github.com/FerrPOINT/task-bord/pkg/config"
 	"github.com/FerrPOINT/task-bord/pkg/events"
-	"github.com/FerrPOINT/task-bord/pkg/notifications"
 	"golang.org/x/crypto/bcrypt"
 	"xorm.io/xorm"
 )
@@ -63,12 +62,12 @@ func CreateUser(s *xorm.Session, user *User) (newUser *User, err error) {
 	user.Status = StatusActive
 	user.AvatarProvider = config.DefaultSettingsAvatarProvider.GetString()
 	user.AvatarFileID = config.DefaultSettingsAvatarFileID.GetInt64()
-	user.EmailRemindersEnabled = config.DefaultSettingsEmailRemindersEnabled.GetBool()
-	user.DiscoverableByName = config.DefaultSettingsDiscoverableByName.GetBool()
-	user.DiscoverableByEmail = config.DefaultSettingsDiscoverableByEmail.GetBool()
-	user.OverdueTasksRemindersEnabled = config.DefaultSettingsOverdueTaskRemindersEnabled.GetBool()
-	user.OverdueTasksRemindersTime = config.DefaultSettingsOverdueTaskRemindersTime.GetString()
-	user.DefaultProjectID = config.DefaultSettingsDefaultProjectID.GetInt64()
+	user.EmailRemindersEnabled = false
+	user.DiscoverableByName = false
+	user.DiscoverableByEmail = false
+	user.OverdueTasksRemindersEnabled = false
+	user.OverdueTasksRemindersTime = ""
+	user.DefaultProjectID = 0
 	user.WeekStart = config.DefaultSettingsWeekStart.GetInt()
 	user.Timezone = config.DefaultSettingsTimezone.GetString()
 
@@ -92,27 +91,6 @@ func CreateUser(s *xorm.Session, user *User) (newUser *User, err error) {
 		User: newUserOut,
 	})
 
-	// Don't send a mail if no mailer is configured
-	if !config.MailerEnabled.GetBool() || user.Issuer != IssuerLocal {
-		return newUserOut, err
-	}
-
-	user.Status = StatusEmailConfirmationRequired
-
-	_, err = s.
-		Where("id = ?", user.ID).
-		Cols("email", "status").
-		Update(user)
-	if err != nil {
-		return
-	}
-
-	n := &EmailConfirmNotification{
-		User:  user,
-		IsNew: true,
-	}
-
-	err = notifications.Notify(user, n, s)
 	return newUserOut, err
 }
 
