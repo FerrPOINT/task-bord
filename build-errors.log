@@ -2,11 +2,11 @@
 pkg/models/project.go:75:16: undefined: Subscription
 pkg/models/error.go:2024:13: undefined: SubscriptionEntityType
 pkg/models/error.go:2052:13: undefined: SubscriptionEntityType
-pkg/models/task_comments.go:39:12: undefined: ReactionMap
 pkg/models/tasks.go:517:75: undefined: TaskReminder
 pkg/models/tasks.go:605:87: undefined: TaskReminder
 pkg/models/admin_user_actions.go:105:14: undefined: user.RequestDeletion
 pkg/models/export.go:116:34: undefined: DataExportReadyNotification
 pkg/models/listeners.go:134:8: undefined: TaskCommentNotification
 pkg/models/listeners.go:185:22: undefined: GetSubscriptionsForEntity
-pkg/models/listeners.go:185:22: too many errors
+pkg/models/listeners.go:185:54: undefined: SubscriptionEntityTask
+pkg/models/listeners.go:185:54: too many errors

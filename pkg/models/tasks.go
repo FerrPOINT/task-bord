@@ -514,14 +514,6 @@ func GetTasksByUIDs(s *xorm.Session, uids []string, a web.Auth) (tasks []*Task, 
 	return
 }
 
-func getRemindersForTasks(s *xorm.Session, taskIDs []int64) (reminders []*TaskReminder, err error) {
-	reminders = []*TaskReminder{}
-	err = s.In("task_id", taskIDs).
-		OrderBy("reminder asc").
-		Find(&reminders)
-	return
-}
-
 func (t *Task) setIdentifier(project *Project) {
 	if project == nil || project.Identifier == "" {
 		t.Identifier = "#" + strconv.FormatInt(t.Index, 10)
@@ -599,22 +591,6 @@ func addAttachmentsToTasks(s *xorm.Session, taskIDs []int64, taskMap map[int64]*
 	for _, a := range attachments {
 		taskMap[a.TaskID].Attachments = append(taskMap[a.TaskID].Attachments, a)
 	}
-	return
-}
-
-func getTaskReminderMap(s *xorm.Session, taskIDs []int64) (taskReminders map[int64][]*TaskReminder, err error) {
-	taskReminders = make(map[int64][]*TaskReminder)
-
-	// Get all reminders and put them in a map to have it easier later
-	reminders, err := getRemindersForTasks(s, taskIDs)
-	if err != nil {
-		return
-	}
-
-	for _, r := range reminders {
-		taskReminders[r.TaskID] = append(taskReminders[r.TaskID], r)
-	}
-
 	return
 }
 

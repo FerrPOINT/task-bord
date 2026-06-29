@@ -118,7 +118,6 @@ func FullInit() {
 
 	// Start processing events
 	go func() {
-		models.RegisterListeners()
 		ws.RegisterListeners()
 		err := events.InitEvents()
 		if err != nil {

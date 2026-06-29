@@ -70,14 +70,8 @@ type Project struct {
 	// True if a project is a favorite. Favorite projects show up in a separate parent project. This value depends on the user making the call to the api.
 	IsFavorite bool `xorm:"-" json:"is_favorite" doc:"Whether the project is a favorite of the requesting user. This value is per-user and depends on who makes the call."`
 
-	// The subscription status for the user reading this project. You can only read this property, use the subscription endpoints to modify it.
-	// Will only returned when retreiving one project.
-	Subscription *Subscription `xorm:"-" json:"subscription,omitempty" readOnly:"true" doc:"The requesting user's subscription status for this project. Read-only here; use the subscription endpoints to change it. Only returned when retrieving a single project."`
-
 	// The position this project has when querying all projects. See the tasks.position property on how to use this.
 	Position float64 `xorm:"double null" json:"position" doc:"The position of this project when listing all projects. See the tasks.position property for how positions work."`
-
-	Views []*ProjectView `xorm:"-" json:"views" readOnly:"true" doc:"The views configured for this project. Managed through the project view endpoints."`
 
 	Expand        ProjectExpandable `xorm:"-" json:"-" query:"expand"`
 	MaxPermission Permission        `xorm:"-" json:"max_permission" readOnly:"true" doc:"The maximum permission the requesting user has on this project (0 = read, 1 = read/write, 2 = admin)."`
@@ -130,34 +124,8 @@ var FavoritesPseudoProject = Project{
 	Description: "This project has all tasks marked as favorites.",
 	IsFavorite:  true,
 	Position:    -1,
-
-	Views: []*ProjectView{
-		{
-			ID:        -1,
-			ProjectID: FavoritesPseudoProjectID,
-			Title:     "List",
-			ViewKind:  ProjectViewKindList,
-			Position:  100,
-			Filter:    &TaskCollection{Filter: "done = false"},
-		},
-		{
-			ID:        -2,
-			ProjectID: FavoritesPseudoProjectID,
-			Title:     "Gantt",
-			ViewKind:  ProjectViewKindGantt,
-			Position:  200,
-		},
-		{
-			ID:        -3,
-			ProjectID: FavoritesPseudoProjectID,
-			Title:     "Table",
-			ViewKind:  ProjectViewKindTable,
-			Position:  300,
-		},
-	},
-
-	Created: time.Now(),
-	Updated: time.Now(),
+	Created:     time.Now(),
+	Updated:     time.Now(),
 }
 
 // ReadAll gets all projects a user has access to
@@ -390,15 +358,6 @@ func (p *Project) ReadOne(s *xorm.Session, a web.Auth) (err error) {
 		}
 	}
 
-	subs, err := GetSubscriptionForUser(s, SubscriptionEntityProject, p.ID, a)
-	if err != nil && IsErrProjectDoesNotExist(err) && isFilter {
-		return nil
-	}
-	if subs != nil {
-		p.Subscription = &subs.Subscription
-	}
-
-	p.Views, err = getViewsForProject(s, p.ID)
 	return
 }
 

@@ -45,27 +45,12 @@ func GetTables() []interface{} {
 	return []interface{}{
 		&Project{},
 		&Task{},
-		&Team{},
-		&TeamMember{},
-		&TeamProject{},
 		&ProjectUser{},
 		&TaskAssginee{},
 		&Label{},
 		&LabelTask{},
-		&TaskReminder{},
-		&TaskRelation{},
 		&TaskAttachment{},
 		&TaskComment{},
-		&Bucket{},
-		&SavedFilter{},
-		&Subscription{},
-		&Favorite{},
-		&Reaction{},
-		&ProjectView{},
-		&TaskPosition{},
-		&TaskBucket{},
-		&TaskUnreadStatus{},
-		&Session{},
 	}
 }
 
