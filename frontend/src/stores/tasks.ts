@@ -6,8 +6,6 @@ import router from '@/router'
 import TaskService from '@/services/task'
 import TaskAssigneeService from '@/services/taskAssignee'
 import LabelTaskService from '@/services/labelTask'
-import TaskDuplicateService from '@/services/taskDuplicateService'
-import TaskDuplicateModel from '@/models/taskDuplicateModel'
 
 import {cleanupItemText, parseTaskText, PREFIXES} from '@/modules/quickAddMagic'
 
@@ -16,16 +14,12 @@ import LabelTaskModel from '@/models/labelTask'
 import LabelTask from '@/models/labelTask'
 import TaskModel from '@/models/task'
 import LabelModel from '@/models/label'
-import TaskReminderModel from '@/models/taskReminder'
 
 import type {ILabel} from '@/modelTypes/ILabel'
 import type {ITask} from '@/modelTypes/ITask'
-import type {ITaskReminder} from '@/modelTypes/ITaskReminder'
 import type {IUser} from '@/modelTypes/IUser'
 import type {IAttachment} from '@/modelTypes/IAttachment'
 import type {IProject} from '@/modelTypes/IProject'
-
-import {REMINDER_PERIOD_RELATIVE_TO_TYPES} from '@/types/IReminderPeriodRelativeTo'
 
 import {setModuleLoading} from '@/stores/helper'
 import {useConfigStore} from '@/stores/config'

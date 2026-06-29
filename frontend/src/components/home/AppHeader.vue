@@ -33,25 +33,6 @@
 				<span class="is-sr-only">{{ $t('project.description') }}</span>
 				<Icon icon="circle-info" />
 			</BaseButton>
-
-			<ProjectSettingsDropdown
-				v-if="canWriteCurrentProject && currentProject.id !== -1"
-				class="project-title-dropdown"
-				:project="currentProject"
-			>
-				<template #trigger="{ toggleOpen }">
-					<BaseButton
-						class="project-title-button"
-						@click="toggleOpen"
-					>
-						<span class="is-sr-only">{{ $t('project.openSettingsMenu') }}</span>
-						<Icon
-							icon="ellipsis-h"
-							class="icon"
-						/>
-					</BaseButton>
-				</template>
-			</ProjectSettingsDropdown>
 		</div>
 
 		<div
@@ -63,65 +44,9 @@
 
 		<div class="navbar-end">
 			<OpenQuickActions />
-			<Notifications />
-			<Dropdown>
-				<template #trigger="{ toggleOpen, open }">
-					<BaseButton
-						class="username-dropdown-trigger"
-						variant="secondary"
-						:shadow="false"
-						@click="toggleOpen"
-					>
-						<img
-							:src="authStore.avatarUrl"
-							alt=""
-							class="avatar"
-							width="40"
-							height="40"
-						>
-						<span class="username">{{ authStore.userDisplayName }}</span>
-						<span
-							class="mis-1 dropdown-icon icon is-small"
-							:style="{
-								transform: open ? 'rotate(180deg)' : 'rotate(0)',
-							}"
-						>
-							<Icon icon="chevron-down" />
-						</span>
-					</BaseButton>
-				</template>
-
-				<DropdownItem :to="{ name: 'user.settings' }">
-					{{ $t('user.settings.title') }}
-				</DropdownItem>
-				<DropdownItem
-					v-if="adminPanelEnabled && authStore.info?.isAdmin"
-					:to="{ name: 'admin.overview' }"
-				>
-					{{ $t('admin.title') }}
-				</DropdownItem>
-				<DropdownItem
-					v-if="imprintUrl"
-					:href="imprintUrl"
-				>
-					{{ $t('navigation.imprint') }}
-				</DropdownItem>
-				<DropdownItem
-					v-if="privacyPolicyUrl"
-					:href="privacyPolicyUrl"
-				>
-					{{ $t('navigation.privacy') }}
-				</DropdownItem>
-				<DropdownItem @click="baseStore.setKeyboardShortcutsActive(true)">
-					{{ $t('keyboardShortcuts.title') }}
-				</DropdownItem>
-				<DropdownItem :to="{ name: 'about' }">
-					{{ $t('about.title') }}
-				</DropdownItem>
-				<DropdownItem @click="authStore.logout()">
-					{{ $t('user.auth.logout') }}
-				</DropdownItem>
-			</Dropdown>
+			<BaseButton @click="authStore.logout()">
+				{{ $t('user.auth.logout') }}
+			</BaseButton>
 		</div>
 	</header>
 </template>
@@ -130,17 +55,10 @@
 // @ts-nocheck
 
 
-
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 
-import { PERMISSIONS as Permissions } from '@/constants/permissions'
-
-import ProjectSettingsDropdown from '@/components/project/ProjectSettingsDropdown.vue'
-import Dropdown from '@/components/misc/Dropdown.vue'
-import DropdownItem from '@/components/misc/DropdownItem.vue'
-import Notifications from '@/components/notifications/Notifications.vue'
 import Logo from '@/components/home/Logo.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import MenuButton from '@/components/home/MenuButton.vue'
@@ -150,21 +68,17 @@ import { getProjectTitle } from '@/helpers/getProjectTitle'
 import { isEditorContentEmpty } from '@/helpers/editorContentEmpty'
 
 import { useBaseStore } from '@/stores/base'
-import { useConfigStore } from '@/stores/config'
 import { useAuthStore } from '@/stores/auth'
 import type { IProject } from '@/modelTypes/IProject'
 
 const baseStore = useBaseStore()
-// Create a mutable copy to satisfy type requirements (readonly deep -> mutable)
 const currentProject = computed<IProject | null>(() => {
 	const project = baseStore.currentProject
 	return project ? { ...project } as IProject : null
 })
 const background = computed(() => baseStore.background)
-const canWriteCurrentProject = computed(() => baseStore.currentProject?.maxPermission !== null && baseStore.currentProject?.maxPermission !== undefined && baseStore.currentProject.maxPermission > Permissions.READ)
 const menuActive = computed(() => baseStore.menuActive)
 
-// Standalone pages (no project) surface their route's title in the header.
 const route = useRoute()
 const { t } = useI18n()
 const pageTitle = computed(() => {
@@ -173,14 +87,10 @@ const pageTitle = computed(() => {
 })
 
 const authStore = useAuthStore()
-
-const configStore = useConfigStore()
-const imprintUrl = computed(() => configStore.legal.imprintUrl)
-const privacyPolicyUrl = computed(() => configStore.legal.privacyPolicyUrl)
 </script>
 
 <style lang="scss" scoped>
-$user-dropdown-width-mobile: 5rem;
+$navbar-height: 64px;
 
 .navbar {
 	--navbar-button-min-width: 40px;
@@ -208,14 +118,6 @@ $user-dropdown-width-mobile: 5rem;
 	&.menu-active {
 		@media screen and (max-width: $tablet) {
 			z-index: 0;
-		}
-	}
-
-	// FIXME: notifications should provide a slot for the icon instead, so that we can style it as we want
-	:deep() {
-		.trigger-button {
-			color: var(--grey-400);
-			font-size: var(--navbar-icon-size);
 		}
 	}
 }
@@ -246,8 +148,6 @@ $user-dropdown-width-mobile: 5rem;
 	display: flex;
 	align-items: center;
 
-	// this makes the truncated text of the project title work
-	// inside the flexbox parent
 	min-inline-size: 0;
 
 	@media screen and (min-width: $tablet) {
@@ -257,21 +157,12 @@ $user-dropdown-width-mobile: 5rem;
 
 .project-title {
 	font-size: 1rem;
-	// We need the following for overflowing ellipsis to work
 	text-overflow: ellipsis;
 	overflow: hidden;
 	white-space: nowrap;
 
 	@media screen and (min-width: $tablet) {
 		font-size: 1.75rem;
-	}
-}
-
-.project-title-dropdown {
-	align-self: stretch;
-
-	.project-title-button {
-		flex-grow: 1;
 	}
 }
 
@@ -289,53 +180,10 @@ $user-dropdown-width-mobile: 5rem;
 	flex: 0 0 auto;
 	display: flex;
 	align-items: stretch;
+	gap: .5rem;
 
 	>* {
 		min-inline-size: var(--navbar-button-min-width);
 	}
-}
-
-.username-dropdown-trigger {
-	padding-inline-start: .75rem;
-	display: inline-flex;
-	align-items: center;
-	font-size: .85rem;
-	font-weight: 700;
-	gap: .5rem;
-	
-	:deep(.avatar) {
-		margin-inline-end: 0;
-	}
-	
-	[dir="rtl"] & {
-		flex-direction: row-reverse;
-	}
-
-	@media screen and (max-width: $tablet) {
-		padding-inline-end: .5rem;
-	}
-
-	@media screen and (min-width: $tablet) {
-		padding-inline-end: .75rem;
-	}
-}
-
-.username {
-	font-family: $task-board-font;
-
-	@media screen and (max-width: $tablet) {
-		display: none;
-	}
-}
-
-.dropdown-icon {
-	transition: transform $transition;
-}
-
-.avatar {
-	border-radius: 100%;
-	vertical-align: middle;
-	block-size: 40px;
-	margin-inline-end: .5rem;
 }
 </style>

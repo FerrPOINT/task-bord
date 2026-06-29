@@ -237,28 +237,7 @@
 									</div>
 								</div>
 							</CustomTransition>
-							<CustomTransition
-								name="flash-background"
-								appear
-							>
-								<div
-									v-if="activeFields.reminders"
-									class="column"
-								>
-									<!-- Reminders -->
-									<div class="detail-title">
-										<Icon :icon="['far', 'clock']" />
-										{{ $t('task.attributes.reminders') }}
-									</div>
-									<Reminders
-										:ref="e => setFieldRef('reminders', e)"
-										v-model="task.reminders"
-										:default-relative-to="remindersDefaultRelativeTo"
-										:disabled="!canWrite"
-										@update:modelValue="saveTask()"
-									/>
-								</div>
-							</CustomTransition>
+							
 							<CustomTransition
 								name="flash-background"
 								appear
@@ -361,49 +340,6 @@
 					</div>
 
 
-					<!-- Related Tasks -->
-					<div
-						v-if="activeFields.relatedTasks"
-						class="content details mbe-0"
-					>
-						<h3>
-							<span class="icon is-grey">
-								<Icon icon="sitemap" />
-							</span>
-							{{ $t('task.attributes.relatedTasks') }}
-						</h3>
-						<RelatedTasks
-							:ref="e => setFieldRef('relatedTasks', e)"
-							:edit-enabled="canWrite"
-							:initial-related-tasks="task.relatedTasks"
-							:project-id="task.projectId"
-							:show-no-relations-notice="true"
-							:task-id="task.id"
-						/>
-					</div>
-
-					<!-- Move Task -->
-					<div
-						v-if="activeFields.moveProject"
-						class="content details"
-					>
-						<h3>
-							<span class="icon is-grey">
-								<Icon icon="list" />
-							</span>
-							{{ $t('task.detail.move') }}
-						</h3>
-						<div class="field has-addons">
-							<div class="control is-expanded">
-								<ProjectSearch
-									:ref="e => setFieldRef('moveProject', e)"
-									:filter="project => project.id !== task.projectId"
-									@update:modelValue="changeProject"
-								/>
-							</div>
-						</div>
-					</div>
-
 					<!-- Comments -->
 					<Comments
 						:can-write="canWrite"
@@ -434,14 +370,7 @@
 							@click="toggleTaskDone()"
 						>
 							{{ task.done ? $t('task.detail.undone') : $t('task.detail.done') }}
-						</XButton>
-						<TaskSubscription
-							entity="task"
-							:entity-id="task.id"
-							:model-value="task.subscription"
-							@update:modelValue="sub => task.subscription = sub"
-						/>
-						<XButton
+						</XButton>						<XButton
 							v-shortcut="'KeyS'"
 							variant="secondary"
 							:icon="task.isFavorite ? 'star' : ['far', 'star']"
@@ -510,30 +439,7 @@
 						>
 							{{ $t('task.detail.actions.attachments') }}
 						</XButton>
-						<XButton
-							v-shortcut="'KeyR'"
-							variant="secondary"
-							icon="sitemap"
-							@click="setRelatedTasksActive()"
-						>
-							{{ $t('task.detail.actions.relatedTasks') }}
-						</XButton>
-						<XButton
-							v-shortcut="'KeyM'"
-							variant="secondary"
-							icon="list"
-							@click="setFieldActive('moveProject')"
-						>
-							{{ $t('task.detail.actions.moveProject') }}
-						</XButton>
-						<XButton
-							variant="secondary"
-							icon="copy"
-							@click="duplicateCurrentTask"
-						>
-							{{ $t('task.detail.actions.duplicate') }}
-						</XButton>
-
+																		
 						<span class="action-heading">{{ $t('task.detail.dateAndTime') }}</span>
 
 						<XButton
@@ -561,23 +467,7 @@
 						>
 							{{ $t('task.detail.actions.endDate') }}
 						</XButton>
-						<XButton
-							v-shortcut="reminderShortcut"
-							variant="secondary"
-							class="is-hidden-mobile"
-							:icon="['far', 'clock']"
-							@click="setFieldActive('reminders')"
-						>
-							{{ $t('task.detail.actions.reminders') }}
-						</XButton>
-						<XButton
-							variant="secondary"
-							icon="history"
-							@click="setFieldActive('repeatAfter')"
-						>
-							{{ $t('task.detail.actions.repeatAfter') }}
-						</XButton>
-						<XButton
+																		<XButton
 							v-shortcut="deleteShortcut"
 							icon="trash-alt"
 							:shadow="false"
@@ -646,7 +536,6 @@ import TaskModel from '@/models/task'
 
 import type {ITask} from '@/modelTypes/ITask'
 import type {IAttachment} from '@/modelTypes/IAttachment'
-import type {IProject} from '@/modelTypes/IProject'
 
 import {PRIORITIES, type Priority} from '@/constants/priorities'
 import {PERMISSIONS} from '@/constants/permissions'
@@ -664,13 +553,9 @@ import Description from '@/components/tasks/partials/Description.vue'
 import EditAssignees from '@/components/tasks/partials/EditAssignees.vue'
 import EditLabels from '@/components/tasks/partials/EditLabels.vue'
 import Heading from '@/components/tasks/partials/Heading.vue'
-import ProjectSearch from '@/components/tasks/partials/ProjectSearch.vue'
 import PercentDoneSelect from '@/components/tasks/partials/PercentDoneSelect.vue'
 import PrioritySelect from '@/components/tasks/partials/PrioritySelect.vue'
-import RelatedTasks from '@/components/tasks/partials/RelatedTasks.vue'
-import Reminders from '@/components/tasks/partials/Reminders.vue'
 import RepeatAfter from '@/components/tasks/partials/RepeatAfter.vue'
-import TaskSubscription from '@/components/misc/Subscription.vue'
 import CustomTransition from '@/components/misc/CustomTransition.vue'
 import AssigneeList from '@/components/tasks/partials/AssigneeList.vue'
 import BucketSelect from '@/components/tasks/partials/BucketSelect.vue'
@@ -680,7 +565,6 @@ import {getProjectTitle} from '@/helpers/getProjectTitle'
 import {isAppleDevice} from '@/helpers/isAppleDevice'
 import {scrollIntoView} from '@/helpers/scrollIntoView'
 import {TASK_REPEAT_MODES} from '@/types/IRepeatMode'
-import {REMINDER_PERIOD_RELATIVE_TO_TYPES} from '@/types/IReminderPeriodRelativeTo'
 import {playPopSound} from '@/helpers/playPop'
 
 import {useTaskStore} from '@/stores/tasks'
@@ -690,7 +574,6 @@ import {useAuthStore} from '@/stores/auth'
 import {useBaseStore} from '@/stores/base'
 
 import {useTitle} from '@/composables/useTitle'
-import {useTaskDetailShortcuts} from '@/composables/useTaskDetailShortcuts'
 
 import {success} from '@/message'
 import type {Action as MessageAction} from '@/message'
@@ -730,18 +613,6 @@ const baseStore = useBaseStore()
 
 const task = ref<ITask>(new TaskModel())
 const hasAttachments = computed(() => (task.value.attachments?.length ?? 0) > 0)
-const remindersDefaultRelativeTo = computed(() => {
-	if (task.value.dueDate) {
-		return REMINDER_PERIOD_RELATIVE_TO_TYPES.DUEDATE
-	}
-	if (task.value.startDate) {
-		return REMINDER_PERIOD_RELATIVE_TO_TYPES.STARTDATE
-	}
-	if (task.value.endDate) {
-		return REMINDER_PERIOD_RELATIVE_TO_TYPES.ENDDATE
-	}
-	return null
-})
 const taskNotFound = ref(false)
 const taskTitle = computed(() => task.value.title)
 useTitle(taskTitle)
@@ -763,10 +634,6 @@ const lastProject = computed(() => {
 })
 
 const lastProjectOrTaskProject = computed(() => lastProject.value ?? project.value)
-
-// Use Shift+R on macOS (Alt+R produces special characters depending on keyboard layout)
-// Use Alt+r on other platforms
-const reminderShortcut = computed(() => isAppleDevice() ? 'Shift+KeyR' : 'Alt+KeyR')
 
 // Match native OS conventions for "delete the selected item"
 const deleteShortcut = isAppleDevice() ? 'Backspace' : 'Delete'
@@ -991,11 +858,8 @@ type FieldType =
 	| 'dueDate'
 	| 'endDate'
 	| 'labels'
-	| 'moveProject'
 	| 'percentDone'
 	| 'priority'
-	| 'relatedTasks'
-	| 'reminders'
 	| 'repeatAfter'
 	| 'startDate'
 	| 'timeTracking'
@@ -1007,11 +871,8 @@ const activeFields: { [type in FieldType]: boolean } = reactive({
 	dueDate: false,
 	endDate: false,
 	labels: false,
-	moveProject: false,
 	percentDone: false,
 	priority: false,
-	relatedTasks: false,
-	reminders: false,
 	repeatAfter: false,
 	startDate: false,
 	timeTracking: false,
@@ -1031,8 +892,6 @@ function setActiveFields() {
 	activeFields.labels = task.value.labels.length > 0
 	activeFields.percentDone = task.value.percentDone > 0
 	activeFields.priority = task.value.priority !== PRIORITIES.UNSET
-	activeFields.relatedTasks = Object.keys(task.value.relatedTasks).length > 0
-	activeFields.reminders = task.value.reminders.length > 0
 	activeFields.repeatAfter = task.value.repeatAfter?.amount > 0 || task.value.repeatMode !== TASK_REPEAT_MODES.REPEAT_MODE_DEFAULT
 	activeFields.startDate = task.value.startDate !== null
 }
@@ -1044,11 +903,8 @@ const activeFieldElements: { [id in FieldType]: HTMLElement | null } = reactive(
 	dueDate: null,
 	endDate: null,
 	labels: null,
-	moveProject: null,
 	percentDone: null,
 	priority: null,
-	relatedTasks: null,
-	reminders: null,
 	repeatAfter: null,
 	startDate: null,
 })
@@ -1122,12 +978,6 @@ async function saveTask(
 	success({message: t('task.detail.updateSuccess')}, actions)
 }
 
-useTaskDetailShortcuts({
-	task: () => task.value,
-	taskTitle: () => taskTitle.value,
-	onSave: saveTask,
-})
-
 const showDeleteModal = ref(false)
 
 async function deleteTask() {
@@ -1152,32 +1002,9 @@ async function toggleTaskDone() {
 	)
 }
 
-async function changeProject(project: IProject | null) {
-	if (project === null) {
-		return
-	}
-	kanbanStore.removeTaskInBucket(task.value)
-	await saveTask({
-		...task.value,
-		projectId: project.id,
-	})
-	baseStore.setCurrentProject(project)
-}
-
 async function toggleFavorite() {
 	const newTask = await taskStore.toggleFavorite(task.value)
 	Object.assign(task.value, newTask)
-}
-
-async function duplicateCurrentTask() {
-	const duplicatedTask = await taskStore.duplicateTask(task.value.id)
-	if (duplicatedTask) {
-		success({message: t('task.detail.duplicateSuccess')})
-		router.push({
-			name: 'task.detail',
-			params: {identifierOrId: duplicatedTask.identifier || duplicatedTask.id},
-		})
-	}
 }
 
 async function setPriority(priority: Priority) {
@@ -1204,21 +1031,6 @@ async function removeRepeatAfter() {
 	await saveTask()
 }
 
-function setRelatedTasksActive() {
-	setFieldActive('relatedTasks')
-
-	// If the related tasks are already available, show the form again
-	const el = activeFieldElements['relatedTasks']
-	if (!el) {
-		return
-	}
-	for (const child of Array.from(el.children)) {
-		if ((child as HTMLElement).id === 'showRelatedTasksFormButton') {
-			(child as HTMLElement).click()
-			break
-		}
-	}
-}
 </script>
 
 <style lang="scss" scoped>

@@ -23,9 +23,8 @@
 			class="is-max-width-desktop"
 			@taskAdded="updateTaskKey"
 		/>
-		<ImportHint v-if="tasksLoaded" />
 		<div
-			v-if="authStore.settings.frontendSettings.showLastViewed !== false && projectHistory.length > 0"
+			v-if="projectHistory.length > 0"
 			class="is-max-width-desktop has-text-start mbs-4"
 		>
 			<h3>{{ $t('home.lastViewed') }}</h3>
@@ -50,7 +49,6 @@
 // @ts-nocheck
 
 
-
 import {ref, computed} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 
@@ -58,7 +56,6 @@ import Message from '@/components/misc/Message.vue'
 import ShowTasks from '@/views/tasks/ShowTasks.vue'
 import ProjectCardGrid from '@/components/project/partials/ProjectCardGrid.vue'
 import AddTask from '@/components/tasks/AddTask.vue'
-import ImportHint from '@/components/home/ImportHint.vue'
 
 import {getHistory} from '@/modules/projectHistory'
 import {parseDateOrNull} from '@/helpers/parseDateOrNull'
@@ -67,6 +64,7 @@ import {useDaytimeSalutation} from '@/composables/useDaytimeSalutation'
 
 import {useProjectStore} from '@/stores/projects'
 import {useAuthStore} from '@/stores/auth'
+
 
 const salutation = useDaytimeSalutation()
 

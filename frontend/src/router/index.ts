@@ -1,6 +1,5 @@
-// @ts-nocheck
-import { createRouter, createWebHistory } from 'vue-router'
-import type { RouteLocation } from 'vue-router'
+import {createRouter, createWebHistory} from 'vue-router'
+import type {RouteLocation} from 'vue-router'
 import {saveLastVisited} from '@/helpers/saveLastVisited'
 
 import {getProjectViewId} from '@/helpers/projectView'
@@ -16,20 +15,24 @@ import UpcomingTasks from '@/views/tasks/ShowTasks.vue'
 
 import NotFoundComponent from '@/views/404.vue'
 
+const AUTH_ROUTE_NAMES = new Set([
+	'user.login',
+	'user.register',
+])
+
+const REDIRECT_HASH_PREFIX = '#redirect='
+
 const router = createRouter({
 	history: createWebHistory(import.meta.env.BASE_URL),
 	scrollBehavior(to, from, savedPosition) {
-		// If the user is using their forward/backward keys to navigate, we want to restore the scroll view
 		if (savedPosition) {
 			return savedPosition
 		}
 
-		// Scroll to anchor should still work
 		if (to.hash) {
 			return {el: to.hash}
 		}
 
-		// Otherwise just scroll to the top
 		return {
 			'inset-inline-start': 0,
 			'inset-block-start': 0,
@@ -45,7 +48,7 @@ const router = createRouter({
 			path: '/tasks/:identifierOrId',
 			name: 'task.detail',
 			component: () => import('@/views/tasks/TaskDetailView.vue'),
-			props: route => ({ identifierOrId: route.params.identifierOrId as string }),
+			props: route => ({identifierOrId: route.params.identifierOrId as string}),
 		},
 		{
 			path: '/login',
@@ -56,78 +59,12 @@ const router = createRouter({
 			},
 		},
 		{
-			path: '/get-password-reset',
-			name: 'user.password-reset.request',
-			component: () => import('@/views/user/RequestPasswordReset.vue'),
-			meta: {
-				title: 'user.auth.resetPassword',
-			},
-		},
-		{
-			path: '/password-reset',
-			name: 'user.password-reset.reset',
-			component: () => import('@/views/user/PasswordReset.vue'),
-			meta: {
-				title: 'user.auth.resetPassword',
-			},
-		},
-		{
 			path: '/register',
 			name: 'user.register',
-			// FIXME: use dynamic imports
-			// component: () => import('@/views/user/Register.vue'),
 			component: Register,
 			meta: {
 				title: 'user.auth.createAccount',
 			},
-		},
-		{
-			path: '/user/settings',
-			name: 'user.settings',
-			component: () => import('@/views/user/Settings.vue'),
-			redirect: {name: 'user.settings.general'},
-			children: [
-				{
-					path: '/user/settings/avatar',
-					name: 'user.settings.avatar',
-					component: () => import('@/views/user/settings/Avatar.vue'),
-				},
-				{
-					path: '/user/settings/data-export',
-					name: 'user.settings.data-export',
-					component: () => import('@/views/user/settings/DataExport.vue'),
-				},
-				{
-					path: '/user/settings/deletion',
-					name: 'user.settings.deletion',
-					component: () => import('@/views/user/settings/Deletion.vue'),
-				},
-				{
-					path: '/user/settings/email-update',
-					name: 'user.settings.email-update',
-					component: () => import('@/views/user/settings/EmailUpdate.vue'),
-				},
-				{
-					path: '/user/settings/general',
-					name: 'user.settings.general',
-					component: () => import('@/views/user/settings/General.vue'),
-				},
-				{
-					path: '/user/settings/password-update',
-					name: 'user.settings.password-update',
-					component: () => import('@/views/user/settings/PasswordUpdate.vue'),
-				},
-				{
-					path: '/user/settings/sessions',
-					name: 'user.settings.sessions',
-					component: () => import('@/views/user/settings/Sessions.vue'),
-				},
-			],
-		},
-		{
-			path: '/user/export/download',
-			name: 'user.export.download',
-			component: () => import('@/views/user/DataExportDownload.vue'),
 		},
 		{
 			path: '/tasks/by/upcoming',
@@ -141,8 +78,6 @@ const router = createRouter({
 			}),
 		},
 		{
-			// Redirect old list routes to the respective project routes
-			// see: https://router.vuejs.org/guide/essentials/dynamic-matching.html#catch-all-404-not-found-route
 			path: '/lists:pathMatch(.*)*',
 			name: 'lists',
 			redirect(to) {
@@ -170,7 +105,7 @@ const router = createRouter({
 			path: '/projects/:parentProjectId/new',
 			name: 'project.createFromParent',
 			component: () => import('@/views/project/NewProject.vue'),
-			props: route => ({ parentProjectId: Number(route.params.parentProjectId as string) }),
+			props: route => ({parentProjectId: Number(route.params.parentProjectId as string)}),
 			meta: {
 				showAsModal: true,
 			},
@@ -179,15 +114,7 @@ const router = createRouter({
 			path: '/projects/:projectId/settings/edit',
 			name: 'project.settings.edit',
 			component: () => import('@/views/project/settings/ProjectSettingsEdit.vue'),
-			props: route => ({ projectId: Number(route.params.projectId as string) }),
-			meta: {
-				showAsModal: true,
-			},
-		},
-		{
-			path: '/projects/:projectId/settings/duplicate',
-			name: 'project.settings.duplicate',
-			component: () => import('@/views/project/settings/ProjectSettingsDuplicate.vue'),
+			props: route => ({projectId: Number(route.params.projectId as string)}),
 			meta: {
 				showAsModal: true,
 			},
@@ -209,51 +136,19 @@ const router = createRouter({
 			},
 		},
 		{
-			path: '/projects/:projectId/settings/views',
-			name: 'project.settings.views',
-			component: () =>  import('@/views/project/settings/ProjectSettingsViews.vue'),
-			meta: {
-				showAsModal: true,
-			},
-			props: route => ({ projectId: Number(route.params.projectId as string) }),
-		},
-		{
-			path: '/projects/:projectId/settings/edit',
-			name: 'filter.settings.edit',
-			component: () => import('@/views/filters/FilterEdit.vue'),
-			meta: {
-				showAsModal: true,
-			},
-			props: route => ({ projectId: Number(route.params.projectId as string) }),
-		},
-		{
-			path: '/projects/:projectId/settings/delete',
-			name: 'filter.settings.delete',
-			component: () => import('@/views/filters/FilterDelete.vue'),
-			meta: {
-				showAsModal: true,
-			},
-			props: route => ({ projectId: Number(route.params.projectId as string) }),
-		},
-		{
 			path: '/projects/:projectId/info',
 			name: 'project.info',
-			component: () => import('@/views/project/ProjectInfo.vue')			,
+			component: () => import('@/views/project/ProjectInfo.vue'),
 			meta: {
 				showAsModal: true,
 			},
-			props: route => ({ projectId: Number(route.params.projectId as string) }),
+			props: route => ({projectId: Number(route.params.projectId as string)}),
 		},
 		{
 			path: '/projects/:projectId',
 			name: 'project.index',
 			redirect(to) {
 				const viewId = getProjectViewId(Number(to.params.projectId as string))
-
-				if (viewId) {
-					console.debug('Replaced list view with', viewId)
-				}
-
 				return {
 					name: 'project.view',
 					params: {
@@ -267,28 +162,10 @@ const router = createRouter({
 			path: '/projects/:projectId/:viewId',
 			name: 'project.view',
 			component: () => import('@/views/project/ProjectView.vue'),
-			props: route => ({ 
+			props: route => ({
 				projectId: parseInt(route.params.projectId as string),
-				viewId: route.params.viewId ? parseInt(route.params.viewId as string): undefined,
+				viewId: route.params.viewId ? parseInt(route.params.viewId as string) : undefined,
 			}),
-		},
-		{
-			path: '/teams',
-			name: 'teams.index',
-			component: () => import('@/views/teams/ListTeams.vue'),
-		},
-		{
-			path: '/teams/new',
-			name: 'teams.create',
-			component: () =>  import('@/views/teams/NewTeam.vue'),
-			meta: {
-				showAsModal: true,
-			},
-		},
-		{
-			path: '/teams/:id/edit',
-			name: 'teams.edit',
-			component: () => import('@/views/teams/EditTeam.vue'),
 		},
 		{
 			path: '/labels',
@@ -304,51 +181,15 @@ const router = createRouter({
 			},
 		},
 		{
-			path: '/filters/new',
-			name: 'filters.create',
-			component: () => import('@/views/filters/FilterNew.vue'),
-			meta: {
-				showAsModal: true,
-			},
-		},
-
-		{
 			path: '/about',
 			name: 'about',
 			component: () => import('@/views/About.vue'),
-		},
-
-		{
-			path: '/admin',
-			component: () => import('@/views/admin/AdminShell.vue'),
-			meta: {
-				requiresAdminPanel: true,
-				adminMode: true,
-			},
-			children: [
-				{
-					path: '',
-					name: 'admin.overview',
-					component: () => import('@/views/admin/OverviewView.vue'),
-				},
-				{
-					path: 'users',
-					name: 'admin.users',
-					component: () => import('@/views/admin/UsersView.vue'),
-				},
-				{
-					path: 'projects',
-					name: 'admin.projects',
-					component: () => import('@/views/admin/ProjectsView.vue'),
-				},
-			],
 		},
 		{
 			path: '/:pathMatch(.*)*',
 			name: 'not-found',
 			component: NotFoundComponent,
 		},
-		// if you omit the last `*`, the `/` character in params will be encoded when resolving or pushing
 		{
 			path: '/:pathMatch(.*)',
 			name: 'bad-not-found',
@@ -357,70 +198,19 @@ const router = createRouter({
 	],
 })
 
-export async function getAuthForRoute(to: RouteLocation, authStore) {
-	// vue-router already decoded to.hash once, so slicing off the prefix yields the original
-	// fullPath (e.g. /oauth/authorize?...) losslessly — no extra decodeURIComponent needed.
+export async function getAuthForRoute(to: RouteLocation, authStore: {authUser: unknown, authLinkShare: unknown}) {
 	const redirectDest = to.name === 'user.login' && to.hash.startsWith(REDIRECT_HASH_PREFIX)
 		? to.hash.slice(REDIRECT_HASH_PREFIX.length)
 		: ''
 
 	if (authStore.authUser || authStore.authLinkShare) {
-		// An already-signed-in browser that opens a copied /login#redirect=<oauth.authorize> URL
-		// must run the OAuth flow with its existing session instead of short-circuiting to home.
-		// The destination has no redirect hash, so the second guard pass just early-returns (#2654).
 		if (redirectDest) {
 			return redirectDest
 		}
 		return
 	}
 
-	// Check if password reset token is in query params
-	const resetToken = to.query.userPasswordReset as string | undefined
-	
-	// Redirect to password reset page if we have a token stored
-	if (resetToken && to.name !== 'user.password-reset.reset') {
-		return {name: 'user.password-reset.reset', query: { userPasswordReset: resetToken }}
-	}
-
-	if (typeof resetToken === 'undefined' && to.name === 'user.password-reset.reset') {
-		return {name: 'user.login'}
-	}
-
-	// Check if email confirmation token is in query params
-	const emailConfirmToken = to.query.userEmailConfirm as string | undefined
-	if (emailConfirmToken) {
-		// Save token to localStorage before redirecting
-		localStorage.setItem('emailConfirmToken', emailConfirmToken)
-		// Redirect to login page where it will be processed
-		if (to.name !== 'user.login') {
-			return {name: 'user.login'}
-		}
-	}
-
-	// Keep the destination in the address bar (not just per-browser localStorage) so a native
-	// client's /oauth/authorize URL stays copyable into another browser. Hash, not query, so the
-	// embedded OAuth params never reach access logs (#2654). Pass fullPath raw: vue-router encodes
-	// the hash itself, so an extra encodeURIComponent here would be double-encoded in the URL.
-	if (to.name === 'oauth.authorize') {
-		return {
-			name: 'user.login',
-			hash: REDIRECT_HASH_PREFIX + to.fullPath,
-		}
-	}
-
-	// Fold the hash destination into localStorage: it's the only bridge that survives the
-	// external OIDC round-trip out of the SPA, so redirectIfSaved() works after any auth method.
-	// vue-router already decoded to.hash once, so it equals the fullPath we wrote above as-is.
-	if (to.hash.startsWith(REDIRECT_HASH_PREFIX)) {
-		const destination = to.hash.slice(REDIRECT_HASH_PREFIX.length)
-		const resolved = router.resolve(destination)
-		saveLastVisited(resolved.name as string, resolved.params, resolved.query)
-	}
-
-	// Check if the route the user wants to go to is a route which needs authentication. We use this to
-	// redirect the user after successful login.
-	const isValidUserAppRoute = !AUTH_ROUTE_NAMES.has(to.name as string) &&
-		localStorage.getItem('emailConfirmToken') === null
+	const isValidUserAppRoute = !AUTH_ROUTE_NAMES.has(to.name as string)
 
 	if (isValidUserAppRoute) {
 		saveLastVisited(to.name as string, to.params, to.query)
@@ -429,10 +219,6 @@ export async function getAuthForRoute(to: RouteLocation, authStore) {
 	if (isValidUserAppRoute) {
 		return {name: 'user.login'}
 	}
-	
-	if(localStorage.getItem('emailConfirmToken') !== null && to.name !== 'user.login') {
-		return {name: 'user.login', query: to.query}
-	}
 }
 
 router.beforeEach(async (to) => {
@@ -440,23 +226,8 @@ router.beforeEach(async (to) => {
 
 	await authStore.checkAuth()
 
-	if (to.meta?.requiresAdminPanel) {
-		const baseStore = useBaseStore()
-		await baseStore.appReady
-		// isAdmin comes from /user, not the JWT; force-fetch in case checkAuth() was debounced.
-		if (authStore.info?.isAdmin === undefined) {
-			await authStore.refreshUserInfo()
-		}
-		if (!authStore.info?.isAdmin) {
-			return {name: 'not-found'}
-		}
-	}
-
 	const newRoute = await getAuthForRoute(to, authStore)
-	if(newRoute) {
-		// A string target (the decoded redirect destination for an authed browser) already
-		// carries its own query/path and no redirect hash, so navigate to it verbatim — don't
-		// re-attach to.hash or it would re-enter the redirect loop.
+	if (newRoute) {
 		if (typeof newRoute === 'string') {
 			return newRoute
 		}
@@ -466,14 +237,11 @@ router.beforeEach(async (to) => {
 		}
 	}
 
-	// to.fullPath keeps the redirect hash url-encoded while to.hash is decoded, so the endsWith
-	// check below never matches and would re-append the hash forever. The hash is already on the
-	// URL here, so skip the re-attach (#2654).
 	if (to.hash.startsWith(REDIRECT_HASH_PREFIX)) {
 		return
 	}
 
-	if(!to.fullPath.endsWith(to.hash)) {
+	if (!to.fullPath.endsWith(to.hash)) {
 		return to.fullPath + to.hash
 	}
 })

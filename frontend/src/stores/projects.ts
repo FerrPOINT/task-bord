@@ -5,8 +5,6 @@ import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 
 import ProjectService from '@/services/project'
-import ProjectDuplicateService from '@/services/projectDuplicateService'
-import ProjectDuplicateModel from '@/models/projectDuplicateModel'
 import {setModuleLoading} from '@/stores/helper'
 import {removeProjectFromHistory} from '@/modules/projectHistory'
 
@@ -15,11 +13,6 @@ import type {IProject} from '@/modelTypes/IProject'
 import ProjectModel from '@/models/project'
 import {success} from '@/message'
 import {useBaseStore} from '@/stores/base'
-import SavedFilterService from '@/services/savedFilter'
-import {getSavedFilterIdFromProjectId, isSavedFilter} from '@/services/savedFilter'
-import SavedFilterModel from '@/models/savedFilter'
-import type {IProjectView} from '@/modelTypes/IProjectView'
-import {PERMISSIONS} from '@/constants/permissions.ts'
 
 export const useProjectStore = defineStore('project', () => {
 	const baseStore = useBaseStore()
@@ -43,8 +36,6 @@ export const useProjectStore = defineStore('project', () => {
 		)))
 	const favoriteProjects = computed(() => projectsArray.value
 		.filter(p => !p.isArchived && p.isFavorite))
-	const savedFilterProjects = computed(() => projectsArray.value
-		.filter(p => !p.isArchived && p.id < -1))
 	const hasProjects = computed(() => projectsArray.value.length > 0)
 
 	const getChildProjects = computed(() => {
@@ -119,14 +110,6 @@ export const useProjectStore = defineStore('project', () => {
 		}
 	})
 
-	const searchSavedFilter = computed(() => {
-		return (query: string, includeArchived = false) => {
-			return searchByQuery(query)
-				.filter(p => getSavedFilterIdFromProjectId(p.id) > 0)
-				.filter(project => project.isArchived === includeArchived)
-		}
-	})
-
 	function setIsLoading(newIsLoading: boolean) {
 		isLoading.value = newIsLoading
 	}
@@ -161,10 +144,6 @@ export const useProjectStore = defineStore('project', () => {
 		if (project.id === -1 || project.isArchived) {
 			return
 		}
-
-		if (isSavedFilter(project)) {
-			return toggleSavedFilterFavorite(project)
-		}
 		
 		return updateProject({
 			...project,
@@ -172,38 +151,9 @@ export const useProjectStore = defineStore('project', () => {
 		})
 	}
 
-	async function toggleSavedFilterFavorite(project: IProject) {
-		if (!isSavedFilter(project)) {
-			return
-		}
-
-		const wasFavorite = project.isFavorite
-		const filterId = getSavedFilterIdFromProjectId(project.id)
-		const savedFilterService = new SavedFilterService()
-
-		// Optimistically update the UI
-		setProject({
-			...project,
-			isFavorite: !wasFavorite,
-		})
-
-		try {
-			const savedFilter = await savedFilterService.get(new SavedFilterModel({id: filterId}))
-			savedFilter.isFavorite = !wasFavorite
-			await savedFilterService.update(savedFilter)
-		} catch (e) {
-			setProject({
-				...project,
-				isFavorite: wasFavorite,
-			})
-			throw e
-		}
-	}
-
 	async function createProject(project: IProject) {
 		const cancel = setModuleLoading(setIsLoading)
 		const projectService = new ProjectService()
-
 		try {
 			const createdProject = await projectService.create(project)
 			setProject(createdProject)
@@ -243,7 +193,6 @@ export const useProjectStore = defineStore('project', () => {
 	async function deleteProject(project: IProject) {
 		const cancel = setModuleLoading(setIsLoading)
 		const projectService = new ProjectService()
-
 		try {
 			const response = await projectService.delete(project)
 			removeProjectById(project)
@@ -277,33 +226,6 @@ export const useProjectStore = defineStore('project', () => {
 		return loadedProjects
 	}
 	
-	function setProjectView(view: IProjectView) {
-		const views = [...projects.value[view.projectId].views]
-		const viewPos = views.findIndex(v => v.id === view.id)
-
-		if (viewPos !== -1) {
-			views[viewPos] = view
-		} else {
-			views.push(view)
-		}
-		views.sort((a, b) => a.position - b.position)
-		
-		setProject({
-			...projects.value[view.projectId],
-			views,
-		})
-	}
-	
-	function removeProjectView(projectId: IProject['id'], viewId: IProjectView['id']) {
-		const project = projects.value[projectId]
-		const updatedViews = project.views.filter(v => v.id !== viewId)
-	
-		setProject({
-			...project,
-			views: updatedViews,
-		})
-	}
-
 	// Add method to ensure single project loading works for link shares
 	async function loadProject(projectId: number) {
 		const project = projects.value[projectId]
@@ -329,7 +251,6 @@ export const useProjectStore = defineStore('project', () => {
 		notArchivedRootProjects: readonly(notArchivedRootProjects),
 		favoriteProjects: readonly(favoriteProjects),
 		hasProjects: readonly(hasProjects),
-		savedFilterProjects: readonly(savedFilterProjects),
 
 		getChildProjects,
 		isOrphanedSubProject,
@@ -337,7 +258,6 @@ export const useProjectStore = defineStore('project', () => {
 		findProjectByExactname,
 		findProjectByIdentifier,
 		searchProject,
-		searchSavedFilter,
 		searchProjectAndFilter,
 
 		setProject,
@@ -350,16 +270,13 @@ export const useProjectStore = defineStore('project', () => {
 		updateProject,
 		deleteProject,
 		getAncestors,
-		setProjectView,
-		removeProjectView,
 	}
 })
 
 export function useProject(projectId: MaybeRefOrGetter<IProject['id']>) {
 	const projectService = shallowReactive(new ProjectService())
-	const projectDuplicateService = shallowReactive(new ProjectDuplicateService())
 	
-	const isLoading = computed(() => projectService.loading || projectDuplicateService.loading)
+	const isLoading = computed(() => projectService.loading)
 	const project: IProject = reactive(new ProjectModel())
 	
 	const {t} = useI18n({useScope: 'global'})
@@ -381,28 +298,10 @@ export function useProject(projectId: MaybeRefOrGetter<IProject['id']>) {
 		success({message: t('project.edit.success')})
 	}
 	
-	async function duplicateProject(parentProjectId: IProject['id'], duplicateShares: boolean = false) {
-		const projectDuplicate = new ProjectDuplicateModel({
-			projectId: Number(toValue(projectId)),
-			parentProjectId,
-			duplicateShares,
-		})
-
-		const duplicate = await projectDuplicateService.create(projectDuplicate)
-		if (duplicate.duplicatedProject) {
-			duplicate.duplicatedProject.maxPermission = PERMISSIONS.ADMIN
-		}
-
-		projectStore.setProject(duplicate.duplicatedProject)
-		success({message: t('project.duplicate.success')})
-		router.push({name: 'project.index', params: {projectId: duplicate.duplicatedProject.id}})
-	}
-
 	return {
 		isLoading: readonly(isLoading),
 		project,
 		save,
-		duplicateProject,
 	}
 }
 

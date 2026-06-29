@@ -18,8 +18,11 @@ import ProjectGantt from '@/components/project/views/ProjectGantt.vue'
 import ProjectTable from '@/components/project/views/ProjectTable.vue'
 import ProjectKanban from '@/components/project/views/ProjectKanban.vue'
 
-import {DEFAULT_PROJECT_VIEW_SETTINGS} from '@/modelTypes/IProjectView'
 import {saveProjectToHistory} from '@/modules/projectHistory'
+
+const DEFAULT_PROJECT_VIEW_SETTINGS = {
+	FIRST: 'first',
+}
 
 const props = defineProps<{
 	projectId: number,
@@ -90,7 +93,7 @@ function redirectToDefaultViewIfNecessary() {
 		// Ideally, we would do that in the router redirect, but the projects (and therefore, the views) 
 		// are not always loaded then.
 
-		const defaultView  = authStore.settings.frontendSettings.defaultView
+		const defaultView = 'first'
 
 		let view
 		if (defaultView !== DEFAULT_PROJECT_VIEW_SETTINGS.FIRST) {

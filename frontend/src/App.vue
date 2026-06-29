@@ -65,9 +65,6 @@ import QuickAddOverlay from '@/components/quick-actions/QuickAddOverlay.vue'
 import DemoMode from '@/components/home/DemoMode.vue'
 import {useQuickAddMode} from '@/composables/useQuickAddMode'
 
-const importAccountDeleteService = () => import('@/services/accountDelete')
-import {success} from '@/message'
-
 const authStore = useAuthStore()
 const baseStore = useBaseStore()
 
@@ -84,8 +81,6 @@ const route = useRoute()
 const PUBLIC_ROUTE_NAMES = new Set([
 	'user.login',
 	'user.register',
-	'user.password-reset.request',
-	'user.password-reset.reset',
 ])
 
 const showAuthLayout = computed(() => authStore.authUser && typeof route.name === 'string' && !PUBLIC_ROUTE_NAMES.has(route.name))
@@ -94,20 +89,6 @@ useBodyClass('is-touch', isTouchDevice())
 const keyboardShortcutsActive = computed(() => baseStore.keyboardShortcutsActive)
 
 const {t} = useI18n({useScope: 'global'})
-
-// setup account deletion verification
-const accountDeletionConfirm = computed(() => route.query?.accountDeletionConfirm as (string | undefined))
-watch(accountDeletionConfirm, async (accountDeletionConfirm) => {
-	if (accountDeletionConfirm === undefined) {
-		return
-	}
-
-	const AccountDeleteService = (await importAccountDeleteService()).default
-	const accountDeletionService = new AccountDeleteService()
-	await accountDeletionService.confirm(accountDeletionConfirm)
-	success({message: t('user.deletion.confirmSuccess')})
-	authStore.refreshUserInfo()
-}, { immediate: true })
 
 setLanguage(DEFAULT_LANGUAGE)
 useColorScheme()

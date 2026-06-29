@@ -36,8 +36,6 @@ type TaskComment struct {
 	Author   *user.User `xorm:"-" json:"author" readOnly:"true" doc:"The user who wrote the comment. Set from the authenticated user on create; ignored on write."`
 	TaskID   int64      `xorm:"index not null" json:"-" param:"task"`
 
-	Reactions ReactionMap `xorm:"-" json:"reactions" readOnly:"true" doc:"The reactions on this comment, keyed by reaction value. Managed through the reactions endpoints, not by writing here."`
-
 	OrderBy string `xorm:"-" json:"-" query:"order_by"`
 
 	Created time.Time `xorm:"created" json:"created" readOnly:"true" doc:"A timestamp when this comment was created. You cannot change this value."`
