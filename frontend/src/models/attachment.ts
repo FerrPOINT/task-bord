@@ -1,9 +1,8 @@
 // @ts-nocheck
 import AbstractModel from './abstractModel'
 import UserModel from './user'
-import FileModel from './file'
+
 import type { IUser } from '@/modelTypes/IUser'
-import type { IFile } from '@/modelTypes/IFile'
 import type { IAttachment } from '@/modelTypes/IAttachment'
 
 export const SUPPORTED_IMAGE_SUFFIX = ['.jpeg', '.jpg', '.png', '.bmp', '.gif']
@@ -24,16 +23,22 @@ export function canPreview(attachment: IAttachment): boolean {
 export default class AttachmentModel extends AbstractModel<IAttachment> implements IAttachment {
 	id = 0
 	taskId = 0
-	createdBy: IUser = UserModel
-	file: IFile = FileModel
+	createdBy: IUser | null = null
+	file: IAttachment['file'] = {id: 0, name: '', size: 0, mime: ''}
 	created: Date = null
 
 	constructor(data: Partial<IAttachment>) {
 		super()
 		this.assignData(data)
 
-		this.createdBy = new UserModel(this.createdBy)
-		this.file = new FileModel(this.file)
-		this.created = new Date(this.created)
+		if (this.createdBy) {
+			this.createdBy = new UserModel(this.createdBy)
+		}
+		if (!this.file) {
+			this.file = {id: 0, name: '', size: 0, mime: ''}
+		}
+		if (this.created) {
+			this.created = new Date(this.created)
+		}
 	}
 }

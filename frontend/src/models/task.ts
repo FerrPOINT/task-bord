@@ -1,141 +1,28 @@
 // @ts-nocheck
-import {PRIORITIES, type Priority} from '@/constants/priorities'
-
+import AbstractModel from '@/models/abstractModel'
 import type {ITask} from '@/modelTypes/ITask'
-import type {ILabel} from '@/modelTypes/ILabel'
-import type {IUser} from '@/modelTypes/IUser'
-import type {IAttachment} from '@/modelTypes/IAttachment'
-import type {IProject} from '@/modelTypes/IProject'
 
-import type {IRepeatAfter} from '@/types/IRepeatAfter'
-import {TASK_REPEAT_MODES, type IRepeatMode} from '@/types/IRepeatMode'
-
-import {parseDateOrNull} from '@/helpers/parseDateOrNull'
-import {secondsToPeriod} from '@/helpers/time/period'
-
-import AbstractModel from './abstractModel'
-import LabelModel from './label'
-import UserModel from './user'
-import AttachmentModel from './attachment'
-import TaskCommentModel from '@/models/taskComment.ts'
-
-export function	getHexColor(hexColor: string): string | undefined {
-	if (hexColor === '' || hexColor === '#') {
-		return undefined
-	}
-
-	return hexColor
-}
-
-/**
- * Parses `repeatAfterSeconds` into a usable js object.
- */
-export function parseRepeatAfter(repeatAfterSeconds: number): IRepeatAfter {
-	
-	const period = secondsToPeriod(repeatAfterSeconds)
-	
-	return {
-		type: period.unit,
-		amount: period.amount,
-	}
-}
-
-export function getTaskIdentifier(task: ITask | null | undefined): string {
-	if (task === null || typeof task === 'undefined') {
-		return ''
-	}
-	
-	if (task.identifier === '') {
-		return `#${task.index}`
-	}
-
-	return task.identifier
-}
-
-export default class TaskModel extends AbstractModel<ITask> implements ITask {
+export default class TaskModel extends AbstractModel implements ITask {
 	id = 0
 	title = ''
 	description = ''
 	done = false
-	doneAt: Date | null = null
-	priority: Priority = PRIORITIES.UNSET
-	labels: ILabel[] = []
-	assignees: IUser[] = []
-
-	dueDate: Date | null = 0
-	startDate: Date | null = 0
-	endDate: Date | null = 0
-	repeatAfter: number | IRepeatAfter = 0
-	repeatFromCurrentDate = false
-	repeatMode: IRepeatMode = TASK_REPEAT_MODES.REPEAT_MODE_DEFAULT
-	reminders: ITaskReminder[] = []
-	hexColor = ''
-	percentDone = 0
-	attachments: IAttachment[] = []
-	coverImageAttachmentId: IAttachment['id'] = null
-	identifier = ''
+	doneAt = null
+	dueDate = null
+	projectId = 0
 	index = 0
-	isFavorite = false
+	identifier = ''
+	created = null
+	updated = null
+	createdBy = null
+	createdById = 0
+	assignees = []
+	labels = []
 	comments = []
-
-	createdBy: IUser = UserModel
-	created: Date = null
-	updated: Date = null
-
-	projectId: IProject['id'] = 0
+	commentCount = 0
 
 	constructor(data: Partial<ITask> = {}) {
 		super()
 		this.assignData(data)
-
-		this.id = Number(this.id)
-		this.title = this.title?.trim()
-		this.doneAt = parseDateOrNull(this.doneAt)
-
-		this.labels = this.labels
-			.map(l => new LabelModel(l))
-			.sort((a, b) => a.title.localeCompare(b.title))
-
-		// Parse the assignees into user models
-		this.assignees = this.assignees.map(a => {
-			return new UserModel(a)
-		})
-
-		this.dueDate = parseDateOrNull(this.dueDate)
-		this.startDate = parseDateOrNull(this.startDate)
-		this.endDate = parseDateOrNull(this.endDate)
-
-		// Parse the repeat after into something usable
-		this.repeatAfter = parseRepeatAfter(this.repeatAfter as number)
-
-		if (this.hexColor !== '' && this.hexColor.substring(0, 1) !== '#') {
-			this.hexColor = '#' + this.hexColor
-		}
-
-		// Make all attachments to attachment models
-		this.attachments = this.attachments.map(a => new AttachmentModel(a))
-
-		// Set the task identifier to empty if the project does not have one
-		if (this.identifier === `-${this.index}`) {
-			this.identifier = ''
-		}
-
-		this.createdBy = new UserModel(this.createdBy)
-		this.created = new Date(this.created)
-		this.updated = new Date(this.updated)
-
-		this.projectId = Number(this.projectId)
-		// The comments will be camel cased anyway in the constructor of the task comment model.
-		this.comments = (data.comments || []).map(c => new TaskCommentModel(c))
-	}
-
-
-	getTextIdentifier() {
-		return getTaskIdentifier(this)
-	}
-
-	getHexColor() {
-		return getHexColor(this.hexColor)
 	}
 }
-

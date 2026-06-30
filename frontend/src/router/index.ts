@@ -1,18 +1,10 @@
 import {createRouter, createWebHistory} from 'vue-router'
 import type {RouteLocation} from 'vue-router'
-import {saveLastVisited} from '@/helpers/saveLastVisited'
-
-import {getProjectViewId} from '@/helpers/projectView'
-import {parseDateOrString} from '@/helpers/time/parseDateOrString'
-import {getNextWeekDate} from '@/helpers/time/getNextWeekDate'
 
 import {useAuthStore} from '@/stores/auth'
-import {useBaseStore} from '@/stores/base'
 
 import Login from '@/views/user/Login.vue'
 import Register from '@/views/user/Register.vue'
-import UpcomingTasks from '@/views/tasks/ShowTasks.vue'
-
 import NotFoundComponent from '@/views/404.vue'
 
 const AUTH_ROUTE_NAMES = new Set([
@@ -24,30 +16,19 @@ const REDIRECT_HASH_PREFIX = '#redirect='
 
 const router = createRouter({
 	history: createWebHistory(import.meta.env.BASE_URL),
-	scrollBehavior(to, from, savedPosition) {
-		if (savedPosition) {
-			return savedPosition
-		}
-
-		if (to.hash) {
-			return {el: to.hash}
-		}
-
-		return {
-			'inset-inline-start': 0,
-			'inset-block-start': 0,
-		}
+	scrollBehavior() {
+		return {left: 0, top: 0}
 	},
 	routes: [
 		{
 			path: '/',
 			name: 'home',
-			component: () => import('@/views/Home.vue'),
+			component: () => import('@/views/project/ListProjects.vue'),
 		},
 		{
 			path: '/tasks/:identifierOrId',
 			name: 'task.detail',
-			component: () => import('@/views/tasks/TaskDetailView.vue'),
+			component: () => import('@/views/404.vue'),
 			props: route => ({identifierOrId: route.params.identifierOrId as string}),
 		},
 		{
@@ -64,28 +45,6 @@ const router = createRouter({
 			component: Register,
 			meta: {
 				title: 'user.auth.createAccount',
-			},
-		},
-		{
-			path: '/tasks/by/upcoming',
-			name: 'tasks.range',
-			component: UpcomingTasks,
-			props: route => ({
-				dateFrom: parseDateOrString(route.query.from as string, new Date()),
-				dateTo: parseDateOrString(route.query.to as string, getNextWeekDate()),
-				showNulls: route.query.showNulls === 'true',
-				showOverdue: route.query.showOverdue === 'true',
-			}),
-		},
-		{
-			path: '/lists:pathMatch(.*)*',
-			name: 'lists',
-			redirect(to) {
-				return {
-					path: to.path.replace('/lists', '/projects'),
-					query: to.query,
-					hash: to.hash,
-				}
 			},
 		},
 		{
@@ -109,6 +68,12 @@ const router = createRouter({
 			meta: {
 				showAsModal: true,
 			},
+		},
+		{
+			path: '/projects/:projectId',
+			name: 'project.index',
+			component: () => import('@/views/project/ProjectView.vue'),
+			props: route => ({projectId: parseInt(route.params.projectId as string)}),
 		},
 		{
 			path: '/projects/:projectId/settings/edit',
@@ -143,29 +108,6 @@ const router = createRouter({
 				showAsModal: true,
 			},
 			props: route => ({projectId: Number(route.params.projectId as string)}),
-		},
-		{
-			path: '/projects/:projectId',
-			name: 'project.index',
-			redirect(to) {
-				const viewId = getProjectViewId(Number(to.params.projectId as string))
-				return {
-					name: 'project.view',
-					params: {
-						projectId: parseInt(to.params.projectId as string),
-						viewId: viewId ?? 0,
-					},
-				}
-			},
-		},
-		{
-			path: '/projects/:projectId/:viewId',
-			name: 'project.view',
-			component: () => import('@/views/project/ProjectView.vue'),
-			props: route => ({
-				projectId: parseInt(route.params.projectId as string),
-				viewId: route.params.viewId ? parseInt(route.params.viewId as string) : undefined,
-			}),
 		},
 		{
 			path: '/labels',
@@ -211,11 +153,6 @@ export async function getAuthForRoute(to: RouteLocation, authStore: {authUser: u
 	}
 
 	const isValidUserAppRoute = !AUTH_ROUTE_NAMES.has(to.name as string)
-
-	if (isValidUserAppRoute) {
-		saveLastVisited(to.name as string, to.params, to.query)
-	}
-
 	if (isValidUserAppRoute) {
 		return {name: 'user.login'}
 	}
@@ -223,9 +160,7 @@ export async function getAuthForRoute(to: RouteLocation, authStore: {authUser: u
 
 router.beforeEach(async (to) => {
 	const authStore = useAuthStore()
-
 	await authStore.checkAuth()
-
 	const newRoute = await getAuthForRoute(to, authStore)
 	if (newRoute) {
 		if (typeof newRoute === 'string') {

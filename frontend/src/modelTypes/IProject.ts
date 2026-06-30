@@ -1,4 +1,16 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import type {IUser} from './IUser'
 
-
-export type IProject = any
+export interface IProject {
+	id: number
+	title: string
+	description?: string
+	identifier?: string
+	hexColor?: string
+	ownerId?: number
+	owner?: IUser | null
+	parentProjectId?: number
+	isArchived?: boolean
+	created?: string
+	updated?: string
+	maxPermission?: number
+}

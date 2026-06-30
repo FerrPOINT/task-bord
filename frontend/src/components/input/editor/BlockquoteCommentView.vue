@@ -11,14 +11,6 @@
 			class="comment-quote__header"
 		>
 			<template v-if="parent">
-				<img
-					v-if="avatarUrl"
-					:src="avatarUrl"
-					alt=""
-					class="comment-quote__avatar"
-					width="20"
-					height="20"
-				>
 				<span class="comment-quote__author">{{ authorName }}</span>
 				<BaseButton
 					v-tooltip="t('task.comment.jumpToOriginal')"
@@ -42,15 +34,12 @@
 
 <script lang="ts" setup>
 // @ts-nocheck
-
-
-
-import {computed, inject, ref, watch} from 'vue'
+import {computed, inject} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {nodeViewProps, NodeViewWrapper, NodeViewContent} from '@tiptap/vue-3'
 
 import BaseButton from '@/components/base/BaseButton.vue'
-import {fetchAvatarBlobUrl, getDisplayName} from '@/models/user'
+import {getDisplayName} from '@/models/user'
 import {commentReplyContextKey} from '@/components/tasks/partials/commentReplyContext'
 
 const props = defineProps(nodeViewProps)
@@ -82,31 +71,6 @@ const authorName = computed(() => {
 	return p ? getDisplayName(p.author) : ''
 })
 
-const avatarUrl = ref('')
-
-// Bumped on every parent change so stale avatar fetches (older parent)
-// don't overwrite a newer one if the user navigates between comments
-// while fetches are still in flight.
-let avatarFetchToken = 0
-
-watch(parent, (p) => {
-	avatarUrl.value = ''
-	const token = ++avatarFetchToken
-	if (!p?.author) {
-		return
-	}
-	fetchAvatarBlobUrl(p.author, 20)
-		.then((url) => {
-			if (token === avatarFetchToken) {
-				avatarUrl.value = (url as string) ?? ''
-			}
-		})
-		.catch(() => {
-			// Swallow — a missing avatar isn't worth a user-visible error;
-			// the header still renders with the author name.
-		})
-}, {immediate: true})
-
 function onJump() {
 	if (commentId.value !== null && ctx) {
 		ctx.scrollToComment(commentId.value)
@@ -126,11 +90,6 @@ function onJump() {
 		font-size: .85rem;
 		color: var(--grey-600);
 		user-select: none;
-	}
-
-	.comment-quote__avatar {
-		border-radius: 50%;
-		flex: 0 0 auto;
 	}
 
 	.comment-quote__author {

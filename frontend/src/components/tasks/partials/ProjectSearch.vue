@@ -11,11 +11,8 @@
 		@search="findProjects"
 	>
 		<template #searchResult="{option}">
-			<span
-				v-if="projectStore.getAncestors(option).length > 1"
-				class="has-text-grey"
-			>
-				{{ projectStore.getAncestors(option).filter(p => p.id !== option.id).map(p => getProjectTitle(p)).join(' &gt; ') }} &gt;
+			<span v-if="projectStore.getAncestors(option).length > 1" class="has-text-grey">
+				{{ projectStore.getAncestors(option).filter(p => p.id !== option.id).map(p => getProjectTitle(p)).join(' > ') }} >
 			</span>
 			{{ getProjectTitle(option) }}
 		</template>
@@ -24,9 +21,6 @@
 
 <script lang="ts" setup>
 // @ts-nocheck
-
-
-
 import {reactive, ref, watch} from 'vue'
 
 import type {IProject} from '@/modelTypes/IProject'
@@ -39,11 +33,9 @@ import Multiselect from '@/components/input/Multiselect.vue'
 
 const props = withDefaults(defineProps<{
 	modelValue?: IProject
-	savedFiltersOnly?: boolean
 	filter?: (project: IProject) => boolean,
 }>(), {
 	modelValue: () => new ProjectModel(),
-	savedFiltersOnly: false,
 	filter: () => true,
 })
 
@@ -69,13 +61,7 @@ function findProjects(query: string) {
 	if (query === '') {
 		select(null)
 	}
-	
-	if (props.savedFiltersOnly) {
-		const found = projectStore.searchSavedFilter(query)
-		foundProjects.value = found.filter(props.filter)
-		return
-	}
-	
+
 	const found = projectStore.searchProject(query)
 	foundProjects.value = found.filter(props.filter)
 }

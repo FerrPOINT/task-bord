@@ -4,29 +4,14 @@ import TaskModel from '@/models/task'
 
 import type {ITask} from '@/modelTypes/ITask'
 
-export type ExpandTaskFilterParam = 'comment_count' | null
-
 export interface TaskFilterParams {
-	sort_by: ('start_date' | 'end_date' | 'due_date' | 'done' | 'id' | 'title')[],
-	order_by: ('asc' | 'desc')[],
-	filter: string,
-	filter_include_nulls: boolean,
+	sort_by?: string[],
+	order_by?: string[],
+	filter?: string,
+	filter_include_nulls?: boolean,
 	filter_timezone?: string,
-	s: string,
+	s?: string,
 	per_page?: number,
-	expand?: ExpandTaskFilterParam,
-}
-
-export function getDefaultTaskFilterParams(): TaskFilterParams {
-	return {
-		sort_by: ['id'],
-		order_by: ['asc', 'desc'],
-		filter: '',
-		filter_include_nulls: false,
-		filter_timezone: '',
-		s: '',
-		expand: null,
-	}
 }
 
 export default class TaskCollectionService extends AbstractService<ITask> {

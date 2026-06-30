@@ -469,7 +469,7 @@ export default abstract class AbstractService<Model extends IAbstract = IAbstrac
 	/**
 	 * Uploads a file to a url.
 	 * @param url
-	 * @param file {IFile}
+	 * @param file
 	 * @param fieldName The name of the field the file is uploaded to.
 	 */
 	uploadFile(url : string, file: File, fieldName : string) {

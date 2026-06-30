@@ -6,7 +6,6 @@ import type { Editor } from '@tiptap/core'
 import MentionList from './MentionList.vue'
 import { getPopupContainer } from '../popupContainer'
 import ProjectUserService from '@/services/projectUsers'
-import { fetchAvatarBlobUrl, getDisplayName } from '@/models/user'
 import type { IUser } from '@/modelTypes/IUser'
 import type { MentionNodeAttrs } from '@tiptap/extension-mention'
 
@@ -27,7 +26,6 @@ async function searchUsersForProject(projectId: number, query: string): Promise<
 	// Fetch avatar URLs for all users
 	const usersWithAvatars = await Promise.all(
 		users.map(async (user) => {
-			const avatarUrl = await fetchAvatarBlobUrl(user, 32)
 			return {
 				id: user.username,
 				label: getDisplayName(user),

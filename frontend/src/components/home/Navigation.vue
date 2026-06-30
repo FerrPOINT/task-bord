@@ -10,17 +10,11 @@
 				class="logo"
 				:aria-label="$t('navigation.home')"
 			>
-				<Logo
-					width="164"
-					height="48"
-				/>
+				<Logo width="164" height="48" />
 			</RouterLink>
 			<menu class="menu-list other-menu-items">
 				<li>
-					<RouterLink
-						v-shortcut="'KeyG KeyO'"
-						:to="{ name: 'home'}"
-					>
+					<RouterLink :to="{ name: 'home'}">
 						<span class="menu-item-icon icon">
 							<Icon icon="calendar" />
 						</span>
@@ -28,21 +22,7 @@
 					</RouterLink>
 				</li>
 				<li>
-					<RouterLink
-						v-shortcut="'KeyG KeyU'"
-						:to="{ name: 'tasks.range'}"
-					>
-						<span class="menu-item-icon icon">
-							<Icon :icon="['far', 'calendar-alt']" />
-						</span>
-						{{ $t('navigation.upcoming') }}
-					</RouterLink>
-				</li>
-				<li>
-					<RouterLink
-						v-shortcut="'KeyG KeyP'"
-						:to="{ name: 'projects.index'}"
-					>
+					<RouterLink :to="{ name: 'projects.index'}">
 						<span class="menu-item-icon icon">
 							<Icon icon="layer-group" />
 						</span>
@@ -50,52 +30,21 @@
 					</RouterLink>
 				</li>
 				<li>
-					<RouterLink
-						v-shortcut="'KeyG KeyA'"
-						:to="{ name: 'labels.index'}"
-					>
+					<RouterLink :to="{ name: 'labels.index'}">
 						<span class="menu-item-icon icon">
 							<Icon icon="tags" />
 						</span>
 						{{ $t('label.title') }}
 					</RouterLink>
 				</li>
-				<li>
-					<RouterLink
-						v-shortcut="'KeyG KeyM'"
-						:to="{ name: 'teams.index'}"
-					>
-						<span class="menu-item-icon icon">
-							<Icon icon="users" />
-						</span>
-						{{ $t('team.title') }}
-					</RouterLink>
-				</li>
 			</menu>
 		</nav>
 
-		<Loading
-			v-if="projectStore.isLoading"
-			variant="small"
-		/>
+		<Loading v-if="projectStore.isLoading" variant="small" />
 		<template v-else>
-			<nav
-				v-if="favoriteProjects.length"
-				class="menu"
-			>
+			<nav v-if="favoriteProjects.length" class="menu">
 				<ProjectsNavigation
 					:model-value="favoriteProjects"
-					:can-edit-order="false"
-					:can-collapse="false"
-				/>
-			</nav>
-			
-			<nav
-				v-if="savedFilterProjects.length"
-				class="menu"
-			>
-				<ProjectsNavigation
-					:model-value="savedFilterProjects"
 					:can-edit-order="false"
 					:can-collapse="false"
 				/>
@@ -110,11 +59,6 @@
 			</nav>
 		</template>
 
-		<PoweredByLink
-			class="mbs-auto"
-			utm-medium="navigation"
-		/>
-
 		<div
 			v-if="!isMobile"
 			class="resize-handle"
@@ -126,12 +70,8 @@
 
 <script setup lang="ts">
 // @ts-nocheck
-
-
-
 import {computed} from 'vue'
 
-import PoweredByLink from '@/components/home/PoweredByLink.vue'
 import Logo from '@/components/home/Logo.vue'
 import Loading from '@/components/misc/Loading.vue'
 
@@ -144,19 +84,15 @@ import {useSidebarResize} from '@/composables/useSidebarResize'
 const baseStore = useBaseStore()
 const projectStore = useProjectStore()
 
-
 const {sidebarWidth, isResizing, startResize, isMobile} = useSidebarResize()
 
-// Cast readonly arrays to mutable type - the arrays are not actually mutated by the component
 const projects = computed(() => projectStore.notArchivedRootProjects as IProject[])
 const favoriteProjects = computed(() => projectStore.favoriteProjects as IProject[])
-const savedFilterProjects = computed(() => projectStore.savedFilterProjects as IProject[])
 </script>
 
 <style lang="scss" scoped>
 .logo {
 	display: block;
-
 	padding-inline-start: 1rem;
 	margin-inline-end: 1rem;
 	margin-block-end: 1rem;

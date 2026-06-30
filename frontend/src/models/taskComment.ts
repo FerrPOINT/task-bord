@@ -27,8 +27,6 @@ export default class TaskCommentModel extends AbstractModel<ITaskComment> implem
 		
 		// We can't convert emojis to camel case, hence we do this manually
 		this.reactions = {}
-		Object.keys(data.reactions || {}).forEach(reaction => {
-			this.reactions[reaction] = data.reactions[reaction].map(u => new UserModel(u))
 		})
 	}
 }

@@ -6,7 +6,6 @@ import {useRouter} from 'vue-router'
 
 import ProjectService from '@/services/project'
 import {setModuleLoading} from '@/stores/helper'
-import {removeProjectFromHistory} from '@/modules/projectHistory'
 
 import type {IProject} from '@/modelTypes/IProject'
 
@@ -196,7 +195,6 @@ export const useProjectStore = defineStore('project', () => {
 		try {
 			const response = await projectService.delete(project)
 			removeProjectById(project)
-			removeProjectFromHistory({id: project.id})
 			return response
 		} finally {
 			cancel()

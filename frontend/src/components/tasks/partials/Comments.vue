@@ -39,25 +39,9 @@
 				class="media comment"
 			>
 				<figure class="media-left is-hidden-mobile">
-					<img
-						:src="avatarFor(c.author, 48)"
-						alt=""
-						class="image is-avatar"
-						height="48"
-						width="48"
-					>
-					<figcaption class="is-sr-only">
-						{{ $t('misc.avatarOfUser', {user: getDisplayName(c.author)}) }}
-					</figcaption>
 				</figure>
 				<div class="media-content">
 					<div class="comment-info">
-						<img
-							:src="avatarFor(c.author, 20)"
-							alt=""
-							class="image is-avatar d-print-none"
-							height="20"
-							width="20"
 						>
 						<strong>{{ getDisplayName(c.author) }}</strong>
 						<span
@@ -233,11 +217,9 @@ import {uploadFile} from '@/helpers/attachments'
 import {success} from '@/message'
 import {formatDateLong, formatDisplayDate} from '@/helpers/time/formatDate'
 import {clearEditorDraft} from '@/helpers/editorDraftStorage'
-import {fetchAvatarBlobUrl, getDisplayName} from '@/models/user'
-import type {IUser} from '@/modelTypes/IUser'
+import {getDisplayName} from '@/models/user'
 import {useConfigStore} from '@/stores/config'
 import {useAuthStore} from '@/stores/auth'
-import Reactions from '@/components/input/Reactions.vue'
 import {useCopyToClipboard} from '@/composables/useCopyToClipboard'
 import {commentReplyContextKey, scrollAndHighlightComment} from '@/components/tasks/partials/commentReplyContext'
 
@@ -272,17 +254,6 @@ const newCommentText = ref('')
 const saved = ref<ITask['id'] | null>(null)
 const saving = ref<ITask['id'] | null>(null)
 
-const avatarCache = reactive(new Map<string, string>())
-
-function avatarFor(u: IUser, size: number) {
-	const key = `${u.id}-${size}`
-	const cached = avatarCache.get(key)
-	if (!cached) {
-		fetchAvatarBlobUrl(u, size).then(url => avatarCache.set(key, url))
-	}
-
-	return avatarCache.get(key) || ''
-}
 
 const currentUserId = computed(() => authStore.info.id)
 const enabled = computed(() => configStore.taskCommentsEnabled)

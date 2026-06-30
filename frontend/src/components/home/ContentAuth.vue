@@ -8,19 +8,7 @@
 		>
 			<Icon icon="times" />
 		</BaseButton>
-		<div
-			class="app-container"
-			:class="{'has-background': background || blurHash}"
-			:style="{'background-image': blurHash && `url(${blurHash})`}"
-		>
-			<div
-				:class="{'is-visible': background}"
-				class="app-container-background background-fade-in d-print-none"
-				:style="{
-					'background-image': background && `url(${background})`,
-					'filter': backgroundBrightness && `brightness(${backgroundBrightness}%)`
-				}"
-			/>
+		<div class="app-container">
 			<Navigation class="d-print-none" />
 			<main
 				id="main-content"
@@ -38,15 +26,11 @@
 					@click="baseStore.setMenuActive(false)"
 				/>
 
-				<QuickActions />
-
 				<RouterView
 					v-slot="{ Component }"
 					:route="routeWithModal"
 				>
-					<keep-alive :include="['project.view']">
-						<component :is="Component" />
-					</keep-alive>
+					<component :is="Component" />
 				</RouterView>
 
 				<Modal
@@ -61,15 +45,6 @@
 						@close="closeModal()"
 					/>
 				</Modal>
-
-				<BaseButton
-					v-shortcut="'Shift+Slash'"
-					class="keyboard-shortcuts-button d-print-none"
-					@click="showKeyboardShortcuts()"
-				>
-					<span class="is-sr-only">{{ $t('keyboardShortcuts.title') }}</span>
-					<Icon icon="keyboard" />
-				</BaseButton>
 			</main>
 		</div>
 	</div>
@@ -77,14 +52,10 @@
 
 <script lang="ts" setup>
 // @ts-nocheck
-
-
-
-import {watch, computed, onBeforeUnmount} from 'vue'
-import {useRoute, useRouter} from 'vue-router'
+import {watch, computed} from 'vue'
+import {useRoute} from 'vue-router'
 
 import Navigation from '@/components/home/Navigation.vue'
-import QuickActions from '@/components/quick-actions/QuickActions.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 
 import {useBaseStore} from '@/stores/base'
@@ -93,31 +64,15 @@ import {useProjectStore} from '@/stores/projects'
 
 import {useRouteWithModal} from '@/composables/useRouteWithModal'
 import {useSidebarResize} from '@/composables/useSidebarResize'
-import {useAuthStore} from '@/stores/auth'
-
-const authStore = useAuthStore()
-const backgroundBrightness = computed(() =>
-	authStore.settings?.frontendSettings?.backgroundBrightness,
-)
 
 const {sidebarWidth} = useSidebarResize()
-
 const {routeWithModal, currentModal, closeModal} = useRouteWithModal()
 
 const baseStore = useBaseStore()
-const background = computed(() => baseStore.background)
-const blurHash = computed(() => baseStore.blurHash)
 const menuActive = computed(() => baseStore.menuActive)
 
-function showKeyboardShortcuts() {
-	baseStore.setKeyboardShortcutsActive(true)
-}
-
 const route = useRoute()
-const router = useRouter()
 
-// FIXME: this is really error prone
-// Reset the current project highlight in menu if the current route is not project related.
 watch(() => route.name as string, (routeName) => {
 	if (
 		routeName &&
@@ -135,25 +90,11 @@ watch(() => route.name as string, (routeName) => {
 	}
 })
 
-// TODO: Reset the title if the page component does not set one itself
-
 const labelStore = useLabelStore()
 labelStore.loadAllLabels()
 
 const projectStore = useProjectStore()
 projectStore.loadAllProjects()
-
-// Listen for task creation from the quick-entry window
-const taskUpdateChannel = new BroadcastChannel('task-board-task-updates')
-taskUpdateChannel.onmessage = (event) => {
-	if (event.data?.type === 'task-created-open' && event.data?.taskId) {
-		router.push({name: 'task.detail', params: {identifierOrId: event.data.taskId}})
-	}
-}
-
-onBeforeUnmount(() => {
-	taskUpdateChannel.close()
-})
 </script>
 
 <style lang="scss" scoped>
@@ -197,7 +138,6 @@ onBeforeUnmount(() => {
 	z-index: 10;
 	position: relative;
 	padding: 1.5rem 0.5rem 0;
-	// TODO refactor: DRY `transition-timing-function` with `./Navigation.vue`.
 	transition: margin-inline-start $transition-duration;
 
 	@media screen and (max-width: $tablet) {
@@ -214,16 +154,6 @@ onBeforeUnmount(() => {
 		@media screen and (min-width: $tablet) {
 			margin-inline-start: var(--sidebar-width);
 		}
-	}
-
-	// Used to make sure the spinner is always in the middle while loading
-	> .loader-container {
-		min-block-size: calc(100vh - #{$navbar-height + 1.5rem + 1rem});
-	}
-
-	// FIXME: This should be somehow defined inside Card.vue
-	.card {
-		background: var(--white);
 	}
 }
 
@@ -244,19 +174,6 @@ onBeforeUnmount(() => {
 	@media screen and (max-width: $tablet) {
 		display: block;
 		opacity: 1;
-	}
-}
-
-.keyboard-shortcuts-button {
-	position: fixed;
-	inset-block-end: calc(1rem - 4px);
-	inset-inline-end: 1rem;
-	z-index: 4500; // The modal has a z-index of 4000
-	color: var(--grey-500);
-	transition: color $transition;
-
-	@media screen and (max-width: $tablet) {
-		display: none;
 	}
 }
 
