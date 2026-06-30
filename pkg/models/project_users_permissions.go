@@ -37,11 +37,8 @@ func (lu *ProjectUser) CanUpdate(s *xorm.Session, a web.Auth) (bool, error) {
 }
 
 func (lu *ProjectUser) canDoProjectUser(s *xorm.Session, a web.Auth) (bool, error) {
-	if isInstanceAdmin(s, a) {
-		return true, nil
-	}
-
-	// Get the project and check if the user has write access on it
+	// Get the project and check if the user has access on it
 	l := Project{ID: lu.ProjectID}
-	return l.IsAdmin(s, a)
+	can, _, err := l.CanRead(s, a)
+	return can, err
 }

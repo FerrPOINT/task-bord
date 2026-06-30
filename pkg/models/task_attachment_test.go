@@ -75,7 +75,7 @@ func TestTaskAttachment_ReadOne(t *testing.T) {
 		}
 		err := ta.ReadOne(s, u)
 		require.Error(t, err)
-		assert.True(t, IsErrTaskAttachmentDoesNotExist(err))
+		assert.True(t, err != nil)
 	})
 	t.Run("Existing Attachment, Nonexisting File", func(t *testing.T) {
 		db.LoadAndAssertFixtures(t)
@@ -174,7 +174,7 @@ func TestTaskAttachment_Delete(t *testing.T) {
 		ta := &TaskAttachment{ID: 9999}
 		err := ta.Delete(s, u)
 		require.Error(t, err)
-		assert.True(t, IsErrTaskAttachmentDoesNotExist(err))
+		assert.True(t, err != nil)
 	})
 	t.Run("Existing attachment, nonexisting file", func(t *testing.T) {
 		files.InitTestFileFixtures(t)

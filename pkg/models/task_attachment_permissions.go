@@ -30,7 +30,7 @@ func (ta *TaskAttachment) CanRead(s *xorm.Session, a web.Auth) (bool, int, error
 // CanDelete checks if the user can delete an attachment
 func (ta *TaskAttachment) CanDelete(s *xorm.Session, a web.Auth) (bool, error) {
 	t := &Task{ID: ta.TaskID}
-	return t.CanWrite(s, a)
+	return t.CanUpdate(s, a)
 }
 
 // CanCreate checks if the user can create an attachment

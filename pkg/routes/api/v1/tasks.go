@@ -28,29 +28,6 @@ import (
 	"github.com/danielgtaylor/huma/v2/conditional"
 )
 
-// expandDoc lists the accepted expand values; shared between the by-id and
-// by-index operations so the docs stay in sync.
-const expandDoc = "Embed extra, more expensive data in each task. Repeatable. One of: subtasks, buckets, reactions, comments, comment_count, time_entries_count, is_unread. Expanding can return more tasks than the page limit (subtasks) and inflate the response."
-
-// parseTaskExpand turns the raw `expand` query values into validated
-// TaskCollectionExpandable entries. Kept package-level for the TaskCollection
-// list endpoint, which accepts the same option. An invalid value returns the
-// model's own validation error, which translateDomainError maps to 422.
-func parseTaskExpand(raw []string) ([]models.TaskCollectionExpandable, error) {
-	if len(raw) == 0 {
-		return nil, nil
-	}
-	expand := make([]models.TaskCollectionExpandable, 0, len(raw))
-	for _, e := range raw {
-		v := models.TaskCollectionExpandable(e)
-		if err := v.Validate(); err != nil {
-			return nil, err
-		}
-		expand = append(expand, v)
-	}
-	return expand, nil
-}
-
 // RegisterTaskRoutes wires Task CRUD onto the Huma API. The list lives on
 // TaskCollection, not here.
 func RegisterTaskRoutes(api huma.API) {
@@ -59,7 +36,7 @@ func RegisterTaskRoutes(api huma.API) {
 	Register(api, huma.Operation{
 		OperationID: "tasks-read",
 		Summary:     "Get a task",
-		Description: "Returns a single task by its numeric id. Sends an ETag; pass it as If-None-Match on a later read to get a 304 Not Modified. " + expandDoc,
+		Description: "Returns a single task by its numeric id. Sends an ETag; pass it as If-None-Match on a later read to get a 304 Not Modified.",
 		Method:      "GET",
 		Path:        "/tasks/{projecttask}",
 		Tags:        tags,
@@ -68,20 +45,11 @@ func RegisterTaskRoutes(api huma.API) {
 	Register(api, huma.Operation{
 		OperationID: "tasks-read-by-index",
 		Summary:     "Get a task by its project index",
-		Description: "Returns a single task addressed by its per-project index. The {project} segment accepts either a numeric project id or a textual project identifier (e.g. \"PROJ\"); a value made solely of digits is always treated as an id. " + expandDoc,
+		Description: "Returns a single task addressed by its per-project index. The {project} segment accepts either a numeric project id or a textual project identifier; a value made solely of digits is always treated as an id.",
 		Method:      "GET",
 		Path:        "/projects/{project}/tasks/by-index/{index}",
 		Tags:        tags,
 	}, tasksReadByIndex)
-
-	Register(api, huma.Operation{
-		OperationID: "tasks-read-by-identifier",
-		Summary:     "Get a task by its textual identifier",
-		Description: "Returns a single task addressed by its textual identifier (e.g. \"PROJ-123\"). " + expandDoc,
-		Method:      "GET",
-		Path:        "/tasks/by-identifier/{identifier}",
-		Tags:        tags,
-	}, tasksReadByIdentifier)
 
 	Register(api, huma.Operation{
 		OperationID: "tasks-create",
@@ -95,7 +63,7 @@ func RegisterTaskRoutes(api huma.API) {
 	Register(api, huma.Operation{
 		OperationID: "tasks-update",
 		Summary:     "Update a task",
-		Description: "Replaces all of a task's fields; requires write access. Setting project_id to a different project moves the task and also requires write access to the target project. Use PATCH for a partial update.",
+		Description: "Replaces all of a task's fields; requires write access. Use PATCH for a partial update.",
 		Method:      "PUT",
 		Path:        "/tasks/{projecttask}",
 		Tags:        tags,
@@ -119,19 +87,14 @@ type taskReadOneBody struct {
 }
 
 func tasksRead(ctx context.Context, in *struct {
-	ID     int64    `path:"projecttask" doc:"The numeric id of the task."`
-	Expand []string `query:"expand,explode" enum:"subtasks,buckets,reactions,comments,comment_count,time_entries_count,is_unread" doc:"Embed extra data per task. Repeatable."`
+	ID int64 `path:"projecttask" doc:"The numeric id of the task."`
 	conditional.Params
 }) (*singleReadBody[taskReadOneBody], error) {
 	a, err := authFromCtx(ctx)
 	if err != nil {
 		return nil, err
 	}
-	expand, err := parseTaskExpand(in.Expand)
-	if err != nil {
-		return nil, translateDomainError(err)
-	}
-	task := &models.Task{ID: in.ID, Expand: expand}
+	task := &models.Task{ID: in.ID}
 	maxPermission, err := handler.DoReadOne(ctx, task, a)
 	if err != nil {
 		return nil, translateDomainError(err)
@@ -141,58 +104,20 @@ func tasksRead(ctx context.Context, in *struct {
 }
 
 func tasksReadByIndex(ctx context.Context, in *struct {
-	Project string   `path:"project" doc:"A numeric project id or a textual project identifier (e.g. \"PROJ\")."`
-	Index   int64    `path:"index" doc:"The per-project task index."`
-	Expand  []string `query:"expand,explode" enum:"subtasks,buckets,reactions,comments,comment_count,time_entries_count,is_unread" doc:"Embed extra data per task. Repeatable."`
+	Project string `path:"project" doc:"A numeric project id or a textual project identifier."`
+	Index   int64  `path:"index" doc:"The per-project task index."`
 	conditional.Params
 }) (*singleReadBody[taskReadOneBody], error) {
 	a, err := authFromCtx(ctx)
 	if err != nil {
 		return nil, err
-	}
-	expand, err := parseTaskExpand(in.Expand)
-	if err != nil {
-		return nil, translateDomainError(err)
 	}
 	projectID, err := resolveProjectIdentifier(in.Project)
 	if err != nil {
 		return nil, err
 	}
 
-	// ID 0 + ProjectID + Index makes the model resolve the id from the
-	// (project, index) pair in both CanRead and ReadOne.
-	task := &models.Task{ProjectID: projectID, Index: in.Index, Expand: expand}
-	maxPermission, err := handler.DoReadOne(ctx, task, a)
-	if err != nil {
-		return nil, translateDomainError(err)
-	}
-	body := &taskReadOneBody{Task: *task, MaxPermission: models.Permission(maxPermission)}
-	return conditionalReadResponse(&in.Params, body, task.Updated, maxPermission)
-}
-
-func tasksReadByIdentifier(ctx context.Context, in *struct {
-	Identifier string   `path:"identifier" doc:"The textual task identifier (e.g. \"PROJ-123\")."`
-	Expand     []string `query:"expand,explode" enum:"subtasks,buckets,reactions,comments,comment_count,time_entries_count,is_unread" doc:"Embed extra data per task. Repeatable."`
-	conditional.Params
-}) (*singleReadBody[taskReadOneBody], error) {
-	a, err := authFromCtx(ctx)
-	if err != nil {
-		return nil, err
-	}
-	expand, err := parseTaskExpand(in.Expand)
-	if err != nil {
-		return nil, translateDomainError(err)
-	}
-
-	s := db.NewSession()
-	defer s.Close()
-
-	resolved, err := models.GetTaskByIdentifier(s, in.Identifier)
-	if err != nil {
-		return nil, translateDomainError(err)
-	}
-
-	task := &models.Task{ID: resolved.ID, Expand: expand}
+	task := &models.Task{ProjectID: projectID, Index: in.Index}
 	maxPermission, err := handler.DoReadOne(ctx, task, a)
 	if err != nil {
 		return nil, translateDomainError(err)
@@ -217,7 +142,6 @@ func tasksCreate(ctx context.Context, in *struct {
 	return &singleBody[models.Task]{Body: task}, nil
 }
 
-// Body matches the read shape so AutoPatch's GET→PUT echo of max_permission validates.
 func tasksUpdate(ctx context.Context, in *struct {
 	ID   int64 `path:"projecttask"`
 	Body taskReadOneBody
@@ -247,10 +171,6 @@ func tasksDelete(ctx context.Context, in *struct {
 	return &emptyBody{}, nil
 }
 
-// resolveProjectIdentifier turns the {project} path segment into a numeric
-// project id. A pure-digit value is always an id (mirroring v1's
-// ResolveProjectIdentifier middleware); anything else is looked up as a
-// case-insensitive identifier and 404s if unknown.
 func resolveProjectIdentifier(raw string) (int64, error) {
 	if id, err := strconv.ParseInt(raw, 10, 64); err == nil {
 		return id, nil

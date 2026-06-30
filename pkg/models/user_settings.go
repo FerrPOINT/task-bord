@@ -81,7 +81,7 @@ func ChangeUserPassword(ctx context.Context, s *xorm.Session, u *user.User, oldP
 		return err
 	}
 
-	return DeleteAllUserSessions(s, u.ID)
+	return nil
 }
 
 // UpdateUserGeneralSettings copies the general settings onto the user, persists

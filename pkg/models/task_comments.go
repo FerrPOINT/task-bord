@@ -74,7 +74,7 @@ func (tc *TaskComment) Create(s *xorm.Session, a web.Auth) (err error) {
 
 func (tc *TaskComment) CreateWithTimestamps(s *xorm.Session, a web.Auth) (err error) {
 	// Check if the task exists
-	task, err := GetTaskSimple(s, &Task{ID: tc.TaskID})
+	task, err := GetTaskSimple(s, tc.TaskID)
 	if err != nil {
 		return err
 	}
@@ -98,7 +98,7 @@ func (tc *TaskComment) CreateWithTimestamps(s *xorm.Session, a web.Auth) (err er
 	}
 
 	events.DispatchOnCommit(s, &TaskCommentCreatedEvent{
-		Task:    &task,
+		Task:    task,
 		Comment: tc,
 		Doer:    tc.Author,
 	})
@@ -144,7 +144,7 @@ func (tc *TaskComment) Delete(s *xorm.Session, a web.Auth) error {
 	}
 
 	events.DispatchOnCommit(s, &TaskCommentDeletedEvent{
-		Task:    &task,
+		Task:    task,
 		Comment: tc,
 		Doer:    doer,
 	})
@@ -178,7 +178,7 @@ func (tc *TaskComment) Update(s *xorm.Session, a web.Auth) error {
 		return err
 	}
 
-	task, err := GetTaskSimple(s, &Task{ID: tc.TaskID})
+	task, err := GetTaskSimple(s, tc.TaskID)
 	if err != nil {
 		return err
 	}
@@ -191,7 +191,7 @@ func (tc *TaskComment) Update(s *xorm.Session, a web.Auth) error {
 	}
 
 	events.DispatchOnCommit(s, &TaskCommentUpdatedEvent{
-		Task:    &task,
+		Task:    task,
 		Comment: tc,
 		Doer:    doer,
 	})
@@ -381,17 +381,8 @@ func getAllCommentsForTasksWithoutPermissionCheck(s *xorm.Session, taskIDs []int
 		return
 	}
 
-	reactions, err := getReactionsForEntityIDs(s, ReactionKindComment, commentIDs)
-	if err != nil {
-		return
-	}
-
 	for _, comment := range comments {
 		comment.Author = authors[comment.AuthorID]
-		r, has := reactions[comment.ID]
-		if has {
-			comment.Reactions = r
-		}
 	}
 
 	var totalItemsQuery = s.In("task_id", taskIDs)

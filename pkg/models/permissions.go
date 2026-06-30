@@ -38,7 +38,7 @@ const (
 
 func (r Permission) isValid() error {
 	if r != PermissionAdmin && r != PermissionRead && r != PermissionWrite {
-		return ErrInvalidPermission{r}
+		return ErrInvalidPermission{Permission: int(r)}
 	}
 
 	return nil

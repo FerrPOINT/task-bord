@@ -4,7 +4,6 @@
   description: Lorem Ipsum
   identifier: TEST1
   owner_id: 1
-  position: 3
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 -
@@ -13,7 +12,6 @@
   description: Lorem Ipsum
   identifier: TEST2
   owner_id: 3
-  position: 2
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 -
@@ -22,7 +20,6 @@
   description: Lorem Ipsum
   identifier: TEST3
   owner_id: 3
-  position: 1
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 -
@@ -31,7 +28,6 @@
   description: Lorem Ipsum
   identifier: TEST4
   owner_id: 3
-  position: 4
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 -
@@ -40,7 +36,6 @@
   description: Lorem Ipsum
   identifier: TEST5
   owner_id: 5
-  position: 5
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 -
@@ -49,7 +44,6 @@
   description: Lorem Ipsum
   identifier: TEST6
   owner_id: 6
-  position: 6
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 -
@@ -58,7 +52,6 @@
   description: Lorem Ipsum
   identifier: TEST7
   owner_id: 6
-  position: 7
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 -
@@ -67,7 +60,6 @@
   description: Lorem Ipsum
   identifier: TEST8
   owner_id: 6
-  position: 8
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 -
@@ -76,7 +68,6 @@
   description: Lorem Ipsum
   identifier: TEST9
   owner_id: 6
-  position: 9
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 -
@@ -85,7 +76,6 @@
   description: Lorem Ipsum
   identifier: TEST10
   owner_id: 6
-  position: 10
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 -
@@ -94,7 +84,6 @@
   description: Lorem Ipsum
   identifier: TEST11
   owner_id: 6
-  position: 11
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 -
@@ -103,8 +92,6 @@
   description: Lorem Ipsum
   identifier: TEST12
   owner_id: 6
-  position: 12
-  parent_project_id: 27
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 -
@@ -113,8 +100,6 @@
   description: Lorem Ipsum
   identifier: TEST13
   owner_id: 6
-  position: 13
-  parent_project_id: 28
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 -
@@ -123,8 +108,6 @@
   description: Lorem Ipsum
   identifier: TEST14
   owner_id: 6
-  position: 14
-  parent_project_id: 29
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 -
@@ -133,8 +116,6 @@
   description: Lorem Ipsum
   identifier: TEST15
   owner_id: 6
-  position: 15
-  parent_project_id: 32
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 -
@@ -143,8 +124,6 @@
   description: Lorem Ipsum
   identifier: TEST16
   owner_id: 6
-  position: 16
-  parent_project_id: 33
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 -
@@ -153,8 +132,6 @@
   description: Lorem Ipsum
   identifier: TEST17
   owner_id: 6
-  position: 17
-  parent_project_id: 34
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 # This project is owned by user 7, and several other users have access to it via different methods.
@@ -165,7 +142,6 @@
   description: Lorem Ipsum
   identifier: TEST18
   owner_id: 7
-  position: 18
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 -
@@ -174,8 +150,6 @@
   description: Lorem Ipsum
   identifier: TEST19
   owner_id: 7
-  position: 19
-  parent_project_id: 29
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 # User 1 does not have access to this project
@@ -185,7 +159,6 @@
   description: Lorem Ipsum
   identifier: TEST20
   owner_id: 13
-  position: 20
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 -
@@ -194,8 +167,6 @@
   description: Lorem Ipsum
   identifier: TEST21
   owner_id: 1
-  position: 21
-  parent_project_id: 22
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 -
@@ -204,8 +175,6 @@
   description: Lorem Ipsum
   identifier: TEST22
   owner_id: 1
-  is_archived: 1
-  position: 22
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 -
@@ -214,7 +183,6 @@
   description: Lorem Ipsum
   identifier: TEST23
   owner_id: 12
-  position: 23
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 -
@@ -223,79 +191,66 @@
   description: Lorem Ipsum
   identifier: TEST6
   owner_id: 6
-  position: 7
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 -
   id: 25
   title: Test25
   owner_id: 6
-  parent_project_id: 12
-  position: 25
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 -
   id: 26
   title: Test26
   owner_id: 6
-  parent_project_id: 25
-  position: 26
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 -
   id: 27
   title: Test27
   owner_id: 6
-  position: 2700
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 -
   id: 28
   title: Test28
   owner_id: 6
-  position: 2800
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 -
   id: 29
   title: Test29
   owner_id: 6
-  position: 2900
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 -
   id: 30
   title: Test30
   owner_id: 6
-  position: 3000
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 -
   id: 31
   title: Test31
   owner_id: 6
-  position: 3100
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 -
   id: 32
   title: Test32
   owner_id: 6
-  position: 3200
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 -
   id: 33
   title: Test33
   owner_id: 6
-  position: 3300
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 -
   id: 34
   title: Test34
   owner_id: 6
-  position: 3400
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 -
@@ -304,8 +259,6 @@
   description: Lorem Ipsum
   identifier: TEST6
   owner_id: 6
-  background_file_id: 1
-  position: 8
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 -
@@ -314,7 +267,6 @@
   description: Lorem Ipsum
   identifier: TEST36
   owner_id: 15
-  position: 1
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 -
@@ -323,7 +275,6 @@
   description: Lorem Ipsum
   identifier: TEST37
   owner_id: 16
-  position: 1
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 -
@@ -332,7 +283,6 @@
   description: Lorem Ipsum
   identifier: TEST38
   owner_id: 15
-  position: 2
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 # Orphaned project: parent_project_id 999999 does not exist.
@@ -343,9 +293,6 @@
   description: This project has a parent_project_id pointing to a non-existent project
   identifier: ORPH1
   owner_id: 1
-  parent_project_id: 999999
-  is_archived: 1
-  position: 39
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 # Child project that is archived individually, but its parent (project 1) is NOT archived.
@@ -356,9 +303,6 @@
   description: Lorem Ipsum
   identifier: TEST40
   owner_id: 1
-  parent_project_id: 3
-  is_archived: 1
-  position: 40
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 # Parent project for hierarchy permission test (issue #2490)
@@ -368,7 +312,6 @@
   description: Parent project for subtask permission hierarchy test
   identifier: HIER1
   owner_id: 6
-  position: 41
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 # Child project — inherits access from parent 41
@@ -378,8 +321,6 @@
   description: Child project for subtask permission hierarchy test
   identifier: HIER2
   owner_id: 6
-  parent_project_id: 41
-  position: 42
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12
 # Child of project 10 used by the reparent privilege-escalation regression tests.
@@ -389,7 +330,5 @@
   id: 43
   title: Reparent Escalation Test Child
   owner_id: 6
-  parent_project_id: 10
-  position: 4300
   updated: 2018-12-02 15:13:12
   created: 2018-12-01 15:13:12

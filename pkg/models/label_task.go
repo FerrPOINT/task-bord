@@ -108,7 +108,7 @@ func (lt *LabelTask) Create(s *xorm.Session, auth web.Auth) (err error) {
 		return err
 	}
 
-	err = updateProjectByTaskID(s, lt.TaskID)
+	err = updateProjectLastUpdatedByTaskID(s, lt.TaskID)
 	return
 }
 

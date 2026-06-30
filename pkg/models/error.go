@@ -664,7 +664,7 @@ func (err ErrInvalidTaskRepeatInterval) HTTPError() web.HTTPError {
 	return web.HTTPError{
 		HTTPCode: http.StatusBadRequest,
 		Code:     ErrCodeInvalidTaskRepeatInterval,
-		Message:  fmt.Sprintf("The task repeat interval must be between 0 and %d seconds (10 years).", MaxTaskRepeatAfterSeconds),
+		Message:  "The task repeat interval is invalid.",
 	}
 }
 
@@ -1970,5 +1970,54 @@ func (err ErrUserDataExportDoesNotExist) HTTPError() web.HTTPError {
 		HTTPCode: http.StatusNotFound,
 		Code:     ErrCodeUserDataExportDoesNotExist,
 		Message:  "No user data export found.",
+	}
+}
+
+// ===================
+// MVP cleanup stubs
+// ===================
+
+// ErrProjectCannotBeEmpty represents an error where a project title is empty.
+type ErrProjectCannotBeEmpty struct{}
+
+func (err ErrProjectCannotBeEmpty) Error() string {
+	return "Project title cannot be empty"
+}
+
+func (err ErrProjectCannotBeEmpty) HTTPError() web.HTTPError {
+	return web.HTTPError{
+		HTTPCode: http.StatusBadRequest,
+		Code:     20001,
+		Message:  "The project title cannot be empty.",
+	}
+}
+
+// ErrTaskAttachmentDoesNotExist represents an error where a task attachment does not exist.
+type ErrTaskAttachmentDoesNotExist struct{}
+
+func (err ErrTaskAttachmentDoesNotExist) Error() string {
+	return "Task attachment does not exist"
+}
+
+func (err ErrTaskAttachmentDoesNotExist) HTTPError() web.HTTPError {
+	return web.HTTPError{
+		HTTPCode: http.StatusNotFound,
+		Code:     12001,
+		Message:  "The task attachment does not exist.",
+	}
+}
+
+// ErrInvalidFilterExpression represents an error where a filter expression is invalid.
+type ErrInvalidFilterExpression struct{}
+
+func (err ErrInvalidFilterExpression) Error() string {
+	return "Invalid filter expression"
+}
+
+func (err ErrInvalidFilterExpression) HTTPError() web.HTTPError {
+	return web.HTTPError{
+		HTTPCode: http.StatusBadRequest,
+		Code:     21001,
+		Message:  "The filter expression is invalid.",
 	}
 }

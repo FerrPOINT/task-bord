@@ -66,7 +66,7 @@ func (ta *TaskAttachment) NewAttachment(s *xorm.Session, f io.ReadSeeker, realna
 	file, err := files.CreateWithSession(s, f, realname, realsize, a)
 	if err != nil {
 		if files.IsErrFileIsTooLarge(err) {
-			return ErrTaskAttachmentIsTooLarge{Size: realsize}
+			return ErrTaskAttachmentIsTooLarge{}
 		}
 		return err
 	}
@@ -100,7 +100,7 @@ func (ta *TaskAttachment) NewAttachment(s *xorm.Session, f io.ReadSeeker, realna
 	}
 
 	events.DispatchOnCommit(s, &TaskAttachmentCreatedEvent{
-		Task:       &task,
+		Task:       task,
 		Attachment: ta,
 		Doer:       ta.CreatedBy,
 	})
@@ -190,10 +190,7 @@ func (ta *TaskAttachment) ReadOne(s *xorm.Session, _ web.Auth) (err error) {
 		return
 	}
 	if !exists {
-		return ErrTaskAttachmentDoesNotExist{
-			TaskID:       ta.TaskID,
-			AttachmentID: ta.ID,
-		}
+		return ErrTaskAttachmentDoesNotExist{}
 	}
 
 	// Get the file
@@ -446,7 +443,7 @@ func (ta *TaskAttachment) Delete(s *xorm.Session, a web.Auth) error {
 	}
 
 	events.DispatchOnCommit(s, &TaskAttachmentDeletedEvent{
-		Task:       &task,
+		Task:       task,
 		Attachment: ta,
 		Doer:       doer,
 	})

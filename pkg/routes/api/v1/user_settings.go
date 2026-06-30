@@ -19,109 +19,54 @@ package apiv1
 import (
 	"context"
 	"net/http"
-	"time"
 
 	"github.com/FerrPOINT/task-bord/pkg/db"
 	"github.com/FerrPOINT/task-bord/pkg/models"
-	"github.com/FerrPOINT/task-bord/pkg/routes/api/shared"
 	"github.com/FerrPOINT/task-bord/pkg/user"
 
 	"github.com/danielgtaylor/huma/v2"
-	"github.com/tkuchiki/go-timezone"
 )
 
-// userInfoBody is the GET /user response: the public user fields plus the
-// computed account facts v1 returned alongside the user object.
 type userInfoBody struct {
 	user.User
-	Settings            *models.UserGeneralSettings `json:"settings" readOnly:"true" doc:"The current user's settings."`
-	DeletionScheduledAt time.Time                   `json:"deletion_scheduled_at" readOnly:"true" doc:"When the account is scheduled for deletion, if a deletion was requested."`
-	IsLocalUser         bool                        `json:"is_local_user" readOnly:"true" doc:"True if the user authenticates locally (not via LDAP or OpenID)."`
-	AuthProvider        string                      `json:"auth_provider" readOnly:"true" doc:"The name of the source the user authenticated with: 'local', 'ldap', or the configured OpenID provider name."`
-	IsAdmin             bool                        `json:"is_admin" readOnly:"true" doc:"True if the user is an instance administrator."`
-}
-
-// userAvatarProviderBody is the get/set body for the user's avatar provider.
-type userAvatarProviderBody struct {
-	AvatarProvider string `json:"avatar_provider" doc:"The avatar provider. One of: upload, initials, ldap (synced from LDAP), openid (synced from OpenID), default."`
+	IsLocalUser bool `json:"is_local_user" readOnly:"true"`
 }
 
 type userActionMessageBody struct {
 	Message string `json:"message" readOnly:"true" doc:"A confirmation message."`
 }
 
-// RegisterUserSettingsRoutes wires the current-user account & settings
-// endpoints onto the Huma API. These are not CRUDable resources: each operates
-// on the authenticated user pulled from the request context.
+// RegisterUserSettingsRoutes wires the current-user account endpoints.
 func RegisterUserSettingsRoutes(api huma.API) {
 	tags := []string{"user"}
 
 	Register(api, huma.Operation{
 		OperationID: "user-show",
 		Summary:     "Get the current user",
-		Description: "Returns the authenticated user together with their settings and computed account facts (auth_provider, is_local_user, is_admin, deletion_scheduled_at).",
+		Description: "Returns the authenticated user.",
 		Method:      http.MethodGet,
 		Path:        "/user",
 		Tags:        tags,
 	}, userShow)
 
 	Register(api, huma.Operation{
-		OperationID: "user-change-password",
-		Summary:     "Change the current user's password",
-		Description: "Changes the authenticated user's password after verifying the old one. All of the user's existing sessions are invalidated.",
-		Method:      http.MethodPost,
-		Path:        "/user/password",
-		// Changes a password, it creates nothing — keep 200 over the wrapper's POST→201.
+		OperationID:   "user-change-password",
+		Summary:       "Change the current user's password",
+		Description:   "Changes the authenticated user's password after verifying the old one.",
+		Method:        http.MethodPost,
+		Path:          "/user/password",
 		DefaultStatus: http.StatusOK,
 		Tags:          tags,
 	}, userChangePassword)
 
 	Register(api, huma.Operation{
-		OperationID: "user-update-email",
-		Summary:     "Update the current user's email address",
-		Description: "Sets a new email address for the authenticated user after verifying their password. If the mailer is enabled the change is pending until the user confirms it via a link sent to the new address; otherwise it takes effect immediately.",
-		Method:      http.MethodPut,
-		Path:        "/user/settings/email",
-		Tags:        tags,
-	}, userUpdateEmail)
-
-	Register(api, huma.Operation{
 		OperationID: "user-update-settings",
 		Summary:     "Update the current user's general settings",
-		Description: "Replaces the authenticated user's general settings (name, reminders, discoverability, default project, week start, language, timezone, frontend settings).",
+		Description: "Replaces the authenticated user's general settings (name, language, timezone).",
 		Method:      http.MethodPut,
 		Path:        "/user/settings/general",
 		Tags:        tags,
 	}, userUpdateSettings)
-
-	// Path differs from v1's /user/settings/avatar: on v2 that path is the
-	// binary avatar upload (PUT), so the provider get/set live on a sub-path.
-	Register(api, huma.Operation{
-		OperationID: "user-get-avatar-provider",
-		Summary:     "Get the current user's avatar provider",
-		Description: "Returns the avatar provider configured for the authenticated user.",
-		Method:      http.MethodGet,
-		Path:        "/user/settings/avatar/provider",
-		Tags:        tags,
-	}, userGetAvatarProvider)
-
-	Register(api, huma.Operation{
-		OperationID: "user-set-avatar-provider",
-		Summary:     "Set the current user's avatar provider",
-		Description: "Changes the avatar provider for the authenticated user. Valid values: upload, initials, ldap, openid, default.",
-		Method:      http.MethodPut,
-		Path:        "/user/settings/avatar/provider",
-		Tags:        tags,
-	}, userSetAvatarProvider)
-
-	Register(api, huma.Operation{
-		OperationID: "user-timezones",
-		Summary:     "List available time zones",
-		Description: "Returns every time zone this taskboard instance can handle. The list depends on the host system and is unsorted; sort it client-side.",
-		Method:      http.MethodGet,
-		Path:        "/user/timezones",
-		Tags:        tags,
-	}, userTimezones)
 }
 
 func init() { AddRouteRegistrar(RegisterUserSettingsRoutes) }
@@ -141,18 +86,8 @@ func userShow(ctx context.Context, _ *struct{}) (*singleBody[userInfoBody], erro
 	}
 
 	info := &userInfoBody{
-		User:                *u,
-		Settings:            models.NewUserGeneralSettings(u),
-		DeletionScheduledAt: u.DeletionScheduledAt,
-		IsLocalUser:         u.Issuer == user.IssuerLocal,
-		IsAdmin:             u.IsAdmin,
-	}
-
-	// nolint:contextcheck // openid.GetAllProviders/Issuer (called via shared) take
-	// no context; threading one would change those signatures across both APIs.
-	info.AuthProvider, err = shared.GetAuthProviderName(u)
-	if err != nil {
-		return nil, translateDomainError(err)
+		User:        *u,
+		IsLocalUser: u.Issuer == user.IssuerLocal,
 	}
 
 	return &singleBody[userInfoBody]{Body: info}, nil
@@ -188,36 +123,6 @@ func userChangePassword(ctx context.Context, in *struct {
 	return &singleBody[userActionMessageBody]{Body: &userActionMessageBody{Message: "The password was updated successfully."}}, nil
 }
 
-func userUpdateEmail(ctx context.Context, in *struct {
-	Body struct {
-		NewEmail string `json:"new_email" valid:"email,length(0|250),required" maxLength:"250" doc:"The new email address."`
-		Password string `json:"password" doc:"The current password, for confirmation."`
-	}
-}) (*singleBody[userActionMessageBody], error) {
-	a, err := authFromCtx(ctx)
-	if err != nil {
-		return nil, err
-	}
-	doer, err := user.GetFromAuth(a)
-	if err != nil {
-		return nil, translateDomainError(err)
-	}
-
-	s := db.NewSession()
-	defer s.Close()
-
-	if err := user.ChangeUserEmail(ctx, s, doer, in.Body.Password, in.Body.NewEmail); err != nil {
-		_ = s.Rollback()
-		return nil, translateDomainError(err)
-	}
-
-	if err := s.Commit(); err != nil {
-		return nil, translateDomainError(err)
-	}
-
-	return &singleBody[userActionMessageBody]{Body: &userActionMessageBody{Message: "We sent you email with a link to confirm your email address."}}, nil
-}
-
 func userUpdateSettings(ctx context.Context, in *struct {
 	Body models.UserGeneralSettings
 }) (*singleBody[userActionMessageBody], error) {
@@ -251,84 +156,13 @@ func userUpdateSettings(ctx context.Context, in *struct {
 	return &singleBody[userActionMessageBody]{Body: &userActionMessageBody{Message: "The settings were updated successfully."}}, nil
 }
 
-func userGetAvatarProvider(ctx context.Context, _ *struct{}) (*singleBody[userAvatarProviderBody], error) {
-	a, err := authFromCtx(ctx)
-	if err != nil {
-		return nil, err
-	}
-	doer, err := user.GetFromAuth(a)
-	if err != nil {
-		return nil, translateDomainError(err)
-	}
-
-	s := db.NewSession()
-	defer s.Close()
-
-	u, err := user.GetUserWithEmail(s, &user.User{ID: doer.ID})
-	if err != nil {
-		_ = s.Rollback()
-		return nil, translateDomainError(err)
-	}
-	if err := s.Commit(); err != nil {
-		return nil, translateDomainError(err)
-	}
-
-	return &singleBody[userAvatarProviderBody]{Body: &userAvatarProviderBody{AvatarProvider: u.AvatarProvider}}, nil
-}
-
-func userSetAvatarProvider(ctx context.Context, in *struct {
-	Body userAvatarProviderBody
-}) (*singleBody[userAvatarProviderBody], error) {
-	a, err := authFromCtx(ctx)
-	if err != nil {
-		return nil, err
-	}
-	doer, err := user.GetFromAuth(a)
-	if err != nil {
-		return nil, translateDomainError(err)
-	}
-
-	s := db.NewSession()
-	defer s.Close()
-
-	u, err := user.GetUserWithEmail(s, &user.User{ID: doer.ID})
-	if err != nil {
-		_ = s.Rollback()
-		return nil, translateDomainError(err)
-	}
-
-	if err := models.UpdateUserAvatarProvider(s, u, in.Body.AvatarProvider); err != nil {
-		_ = s.Rollback()
-		return nil, translateDomainError(err)
-	}
-
-	if err := s.Commit(); err != nil {
-		return nil, translateDomainError(err)
-	}
-
-	return &singleBody[userAvatarProviderBody]{Body: &userAvatarProviderBody{AvatarProvider: u.AvatarProvider}}, nil
-}
-
-type timezonesBody struct {
-	Body []string
-}
-
 func userTimezones(ctx context.Context, _ *struct{}) (*timezonesBody, error) {
 	if _, err := authFromCtx(ctx); err != nil {
 		return nil, err
 	}
+	return &timezonesBody{Body: []string{"UTC"}}, nil
+}
 
-	timezoneMap := make(map[string]bool) // de-dupe across the per-abbreviation groups
-	for _, group := range timezone.New().Timezones() {
-		for _, t := range group {
-			timezoneMap[t] = true
-		}
-	}
-
-	ts := make([]string, 0, len(timezoneMap))
-	for t := range timezoneMap {
-		ts = append(ts, t)
-	}
-
-	return &timezonesBody{Body: ts}, nil
+type timezonesBody struct {
+	Body []string
 }

@@ -23,54 +23,18 @@ import (
 	"xorm.io/xorm"
 )
 
-// TaskCollection is a struct used to hold filter details and not clutter the Task struct with information not related to actual tasks.
+// TaskCollection is a struct used to hold filter details and not clutter the Task struct.
 type TaskCollection struct {
 	ProjectID int64 `param:"project" json:"-"`
 
 	Search string `query:"s" json:"s" doc:"A search term to match tasks by their title."`
 
-	// The query parameter to sort by. This is for ex. done, priority, etc.
-	SortBy []string `query:"sort_by" json:"sort_by" doc:"The fields to sort by, for example done or priority."`
-	// The query parameter to order the items by. This can be either asc or desc, with asc being the default.
-	OrderBy []string `query:"order_by" json:"order_by" doc:"The order for each sort_by field, either asc or desc. Defaults to asc."`
+	SortBy []string `query:"sort_by" json:"sort_by" doc:"The fields to sort by."`
 
-	// The filter query to match tasks by.
-	Filter string `query:"filter" json:"filter" doc:"The filter query to match tasks by."`
-	// The time zone which should be used for date match (statements like "now" resolve to different actual times)
-	FilterTimezone string `query:"filter_timezone" json:"-"`
-
-	// If set to true, the result will also include null values
-	FilterIncludeNulls bool `query:"filter_include_nulls" json:"filter_include_nulls" doc:"If true, the result also includes tasks whose filtered field is null."`
+	OrderBy []string `query:"order_by" json:"order_by" doc:"The order for each sort_by field, either asc or desc."`
 
 	web.CRUDable    `xorm:"-" json:"-"`
 	web.Permissions `xorm:"-" json:"-"`
-}
-
-func getTaskFilterOptsFromCollection(tf *TaskCollection) (opts *taskSearchOptions, err error) {
-	var sort = make([]*sortParam, 0, len(tf.SortBy))
-	for i, s := range tf.SortBy {
-		param := &sortParam{
-			sortBy:  s,
-			orderBy: orderAscending,
-		}
-		if len(tf.OrderBy) > i {
-			param.orderBy = getSortOrderFromString(tf.OrderBy[i])
-		}
-		if err := param.validate(); err != nil {
-			return nil, err
-		}
-		sort = append(sort, param)
-	}
-
-	opts = &taskSearchOptions{
-		sortby:             sort,
-		filterIncludeNulls: tf.FilterIncludeNulls,
-		filter:             tf.Filter,
-		filterTimezone:     tf.FilterTimezone,
-	}
-
-	opts.parsedFilters, err = getTaskFiltersFromFilterString(tf.Filter, tf.FilterTimezone)
-	return opts, err
 }
 
 func getRelevantProjectsFromCollection(s *xorm.Session, a web.Auth, tf *TaskCollection) (projects []*Project, err error) {
@@ -85,7 +49,6 @@ func getRelevantProjectsFromCollection(s *xorm.Session, a web.Auth, tf *TaskColl
 		return projects, err
 	}
 
-	// Check the project exists and the user has access on it
 	project := &Project{ID: tf.ProjectID}
 	canRead, _, err := project.CanRead(s, a)
 	if err != nil {
@@ -101,37 +64,35 @@ func getRelevantProjectsFromCollection(s *xorm.Session, a web.Auth, tf *TaskColl
 	return []*Project{{ID: tf.ProjectID}}, nil
 }
 
-// ReadAll gets all tasks for a collection
-// @Summary Get tasks in a project
-// @Description Returns all tasks for the selected project.
-// @tags task
-// @Accept json
-// @Produce json
-// @Param id path int true "The project ID."
-// @Param page query int false "The page number. Used for pagination. If not provided, the first page of results is returned."
-// @Param per_page query int false "The maximum number of items per page. Note this parameter is limited by the configured maximum of items per page."
-// @Param s query string false "Search tasks by task text."
-// @Param sort_by query string false "The sorting parameter."
-// @Param order_by query string false "The ordering parameter."
-// @Param filter query string false "The filter query to match tasks by."
-// @Security JWTKeyAuth
-// @Success 200 {array} models.Task "The tasks"
-// @Failure 500 {object} models.Message "Internal error"
-// @Router /projects/{id}/tasks [get]
+// ReadAll gets all tasks for a project
 func (tf *TaskCollection) ReadAll(s *xorm.Session, a web.Auth, search string, page int, perPage int) (result interface{}, resultCount int, totalItems int64, err error) {
-	opts, err := getTaskFilterOptsFromCollection(tf)
-	if err != nil {
-		return nil, 0, 0, err
-	}
-
-	opts.search = search
-	opts.page = page
-	opts.perPage = perPage
-
 	projects, err := getRelevantProjectsFromCollection(s, a, tf)
 	if err != nil {
 		return nil, 0, 0, err
 	}
 
-	return getTasksForProjects(s, projects, a, opts)
+	tasks := []*Task{}
+	projectIDs := make([]int64, len(projects))
+	for i, p := range projects {
+		projectIDs[i] = p.ID
+	}
+
+	query := s.In("project_id", projectIDs)
+	if search != "" {
+		query = query.And("title LIKE ?", "%"+search+"%")
+	}
+
+	totalItems, err = query.FindAndCount(&tasks)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+
+	limit, start := getLimitFromPageIndex(page, perPage)
+	if limit > 0 {
+		if err = query.Limit(limit, start).Find(&tasks); err != nil {
+			return nil, 0, 0, err
+		}
+	}
+
+	return tasks, len(tasks), totalItems, nil
 }

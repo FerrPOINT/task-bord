@@ -37,19 +37,9 @@ type registerUserBody struct {
 	Body *user.User
 }
 
-// messageBody carries a human-readable confirmation for endpoints that report
-// success without returning a resource (password reset, email confirm).
-type messageBody struct {
-	Body struct {
-		Message string `json:"message" readOnly:"true" doc:"A human-readable confirmation message."`
-	}
-}
-
 func init() { AddRouteRegistrar(RegisterPublicAuthRoutes) }
 
-// RegisterPublicAuthRoutes wires the unauthenticated local-account flows
-// (registration, password reset, email confirmation). The local-account flows
-// mirror v1 by only registering when local auth is enabled.
+// RegisterPublicAuthRoutes wires the unauthenticated local-account flows.
 func RegisterPublicAuthRoutes(api huma.API) {
 	if config.AuthLocalEnabled.GetBool() {
 		registerLocalAuthRoutes(api)
@@ -59,9 +49,6 @@ func RegisterPublicAuthRoutes(api huma.API) {
 func registerLocalAuthRoutes(api huma.API) {
 	authTags := []string{"auth"}
 
-	// Registration is its own static-config gate on top of local auth: when it
-	// is disabled the route simply isn't registered (a request then 404s as an
-	// unknown route), rather than registering it and rejecting per request.
 	if config.ServiceEnableRegistration.GetBool() {
 		Register(api, huma.Operation{
 			OperationID: "auth-register",
@@ -73,39 +60,6 @@ func registerLocalAuthRoutes(api huma.API) {
 			Security:    publicSecurity,
 		}, authRegister)
 	}
-
-	Register(api, huma.Operation{
-		OperationID:   "auth-password-token",
-		Summary:       "Request a password reset token",
-		Description:   "Requests a token to reset the password for the account with the given email. The token is sent to that email; the response is the same whether or not an account exists.",
-		Method:        http.MethodPost,
-		Path:          "/user/password/token",
-		DefaultStatus: http.StatusOK,
-		Tags:          authTags,
-		Security:      publicSecurity,
-	}, authRequestPasswordToken)
-
-	Register(api, huma.Operation{
-		OperationID:   "auth-password-reset",
-		Summary:       "Reset a password",
-		Description:   "Sets a new password using a previously issued reset token. All of the user's existing sessions are invalidated.",
-		Method:        http.MethodPost,
-		Path:          "/user/password/reset",
-		DefaultStatus: http.StatusOK,
-		Tags:          authTags,
-		Security:      publicSecurity,
-	}, authResetPassword)
-
-	Register(api, huma.Operation{
-		OperationID:   "auth-confirm-email",
-		Summary:       "Confirm an email address",
-		Description:   "Confirms the email address of a newly registered user using the token sent to that email.",
-		Method:        http.MethodPost,
-		Path:          "/user/confirm",
-		DefaultStatus: http.StatusOK,
-		Tags:          authTags,
-		Security:      publicSecurity,
-	}, authConfirmEmail)
 }
 
 func authRegister(ctx context.Context, in *struct{ Body shared.UserRegister }) (*registerUserBody, error) {
@@ -114,31 +68,4 @@ func authRegister(ctx context.Context, in *struct{ Body shared.UserRegister }) (
 		return nil, translateDomainError(err)
 	}
 	return &registerUserBody{Body: newUser}, nil
-}
-
-func authRequestPasswordToken(_ context.Context, in *struct{ Body user.PasswordTokenRequest }) (*messageBody, error) {
-	if err := shared.RequestPasswordResetToken(&in.Body); err != nil {
-		return nil, translateDomainError(err)
-	}
-	out := &messageBody{}
-	out.Body.Message = "Token was sent."
-	return out, nil
-}
-
-func authResetPassword(_ context.Context, in *struct{ Body user.PasswordReset }) (*messageBody, error) {
-	if err := shared.ResetPassword(&in.Body); err != nil {
-		return nil, translateDomainError(err)
-	}
-	out := &messageBody{}
-	out.Body.Message = "The password was updated successfully."
-	return out, nil
-}
-
-func authConfirmEmail(_ context.Context, in *struct{ Body user.EmailConfirm }) (*messageBody, error) {
-	if err := shared.ConfirmEmail(&in.Body); err != nil {
-		return nil, translateDomainError(err)
-	}
-	out := &messageBody{}
-	out.Body.Message = "The email was confirmed successfully."
-	return out, nil
 }

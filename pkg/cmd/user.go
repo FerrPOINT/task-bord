@@ -17,7 +17,6 @@
 package cmd
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"strconv"
@@ -27,7 +26,6 @@ import (
 	"github.com/FerrPOINT/task-bord/pkg/db"
 	"github.com/FerrPOINT/task-bord/pkg/initialize"
 	"github.com/FerrPOINT/task-bord/pkg/log"
-	"github.com/FerrPOINT/task-bord/pkg/models"
 	"github.com/FerrPOINT/task-bord/pkg/user"
 
 	"github.com/asaskevich/govalidator"
@@ -77,18 +75,12 @@ func init() {
 	userChangeStatusCmd.Flags().BoolVarP(&userFlagDisableUser, "disable", "d", false, "Disable the user.")
 	userChangeStatusCmd.Flags().BoolVarP(&userFlagEnableUser, "enable", "e", false, "Enable the user.")
 
-	// User deletion flags
-	userDeleteCmd.Flags().BoolVarP(&userFlagDeleteNow, "now", "n", false, "If provided, deletes the user immediately instead of sending them an email first.")
-
-	// Bypass confirm prompt
-	userDeleteCmd.Flags().BoolVarP(&userFlagDeleteConfirm, "confirm", "c", false, "Bypasses any prompts confirming the deletion request, use with caution!")
-
 	userSetAdminCmd.Flags().BoolVar(&userFlagMakeAdmin, "admin", false, "Promote the user to instance admin.")
 	userSetAdminCmd.Flags().BoolVar(&userFlagRemoveAdmin, "no-admin", false, "Revoke instance admin from the user.")
 	userSetAdminCmd.MarkFlagsMutuallyExclusive("admin", "no-admin")
 	userSetAdminCmd.MarkFlagsOneRequired("admin", "no-admin")
 
-	userCmd.AddCommand(userListCmd, userCreateCmd, userUpdateCmd, userResetPasswordCmd, userChangeStatusCmd, userDeleteCmd, userSetAdminCmd)
+	userCmd.AddCommand(userListCmd, userCreateCmd, userUpdateCmd, userResetPasswordCmd, userChangeStatusCmd, userSetAdminCmd)
 	rootCmd.AddCommand(userCmd)
 }
 
@@ -266,16 +258,10 @@ var userCreateCmd = &cobra.Command{
 			log.Fatalf("Provided email is invalid.")
 		}
 
-		newUser, err := user.CreateUser(s, u)
+		_, err := user.CreateUser(s, u)
 		if err != nil {
 			_ = s.Rollback()
 			log.Fatalf("Error creating new user: %s", err)
-		}
-
-		err = models.CreateNewProjectForUser(s, newUser)
-		if err != nil {
-			_ = s.Rollback()
-			log.Fatalf("Error creating new project for user: %s", err)
 		}
 
 		if err := s.Commit(); err != nil {
@@ -336,22 +322,12 @@ var userResetPasswordCmd = &cobra.Command{
 
 		u := getUserFromArg(s, args[0])
 
-		// By default we reset as usual, only with specific flag directly.
-		if userFlagResetPasswordDirectly {
-			err := user.UpdateUserPassword(s, u, getPasswordFromFlagOrInput())
-			if err != nil {
-				_ = s.Rollback()
-				log.Fatalf("Could not update user password: %s", err)
-			}
-			fmt.Println("Password updated successfully.")
-		} else {
-			err := user.RequestUserPasswordResetToken(s, u)
-			if err != nil {
-				_ = s.Rollback()
-				log.Fatalf("Could not send password reset email: %s", err)
-			}
-			fmt.Println("Password reset email sent successfully.")
+		err := user.UpdateUserPassword(s, u, getPasswordFromFlagOrInput())
+		if err != nil {
+			_ = s.Rollback()
+			log.Fatalf("Could not update user password: %s", err)
 		}
+		fmt.Println("Password updated successfully.")
 
 		if err := s.Commit(); err != nil {
 			log.Fatalf("Could not send password reset email: %s", err)
@@ -398,68 +374,3 @@ var userChangeStatusCmd = &cobra.Command{
 	},
 }
 
-var userDeleteCmd = &cobra.Command{
-	Use:   "delete [user id]",
-	Short: "Delete an existing user.",
-	Long:  "Kick off the user deletion process. If call without the --now flag, this command will only trigger an email to the user in order for them to confirm and start the deletion process. With the flag the user is deleted immediately. USE WITH CAUTION.",
-	Args:  cobra.ExactArgs(1),
-	PreRun: func(_ *cobra.Command, _ []string) {
-		initialize.FullInit()
-	},
-	Run: func(_ *cobra.Command, args []string) {
-		if userFlagDeleteNow && !userFlagDeleteConfirm {
-			fmt.Println("You requested to delete the user immediately. Are you sure?")
-			fmt.Println(`To confirm, please type "yes, I confirm" in all uppercase:`)
-
-			cr := bufio.NewReader(os.Stdin)
-			text, err := cr.ReadString('\n')
-			if err != nil {
-				log.Fatalf("could not read confirmation message: %s", err)
-			}
-
-			// On Windows <ENTER> a newline is \r\n, while on Linux it is only \n.
-			text = strings.TrimRight(text, "\r\n")
-
-			if text != "YES, I CONFIRM" {
-				log.Fatalf("invalid confirmation message")
-			}
-		}
-
-		s := db.NewSession()
-		defer s.Close()
-
-		u := getUserFromArg(s, args[0])
-
-		if userFlagDeleteNow {
-			if err := user.GuardLastAdmin(s, u); err != nil {
-				_ = s.Rollback()
-				log.Fatalf("Error removing the user: %s", err)
-			}
-			err := models.DeleteUser(s, u)
-			if err != nil {
-				_ = s.Rollback()
-				log.Fatalf("Error removing the user: %s", err)
-			}
-		} else {
-			if err := user.GuardLastAdmin(s, u); err != nil {
-				_ = s.Rollback()
-				log.Fatalf("Could not request user deletion: %s", err)
-			}
-			err := user.RequestDeletion(s, u)
-			if err != nil {
-				_ = s.Rollback()
-				log.Fatalf("Could not request user deletion: %s", err)
-			}
-		}
-
-		if err := s.Commit(); err != nil {
-			log.Fatalf("Error saving everything: %s", err)
-		}
-
-		if userFlagDeleteNow {
-			fmt.Println("User deleted successfully.")
-		} else {
-			fmt.Println("User scheduled for deletion successfully.")
-		}
-	},
-}

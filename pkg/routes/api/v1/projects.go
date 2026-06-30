@@ -87,15 +87,13 @@ func init() { AddRouteRegistrar(RegisterProjectRoutes) }
 
 func projectsList(ctx context.Context, in *struct {
 	ListParams
-	Expand     string `query:"expand" enum:"permissions" doc:"If set to \"permissions\", each returned project includes the max permission the requesting user has on it (max_permission). Currently only \"permissions\" is supported."`
-	IsArchived bool   `query:"is_archived" doc:"If true, also returns archived projects."`
+	IsArchived bool `query:"is_archived" doc:"If true, also returns archived projects."`
 }) (*projectListBody, error) {
 	a, err := authFromCtx(ctx)
 	if err != nil {
 		return nil, err
 	}
 	p := &models.Project{
-		Expand:     models.ProjectExpandable(in.Expand),
 		IsArchived: in.IsArchived,
 	}
 	result, _, total, err := handler.DoReadAll(ctx, p, a, in.Q, in.Page, in.PerPage)
@@ -109,9 +107,7 @@ func projectsList(ctx context.Context, in *struct {
 	return &projectListBody{Body: NewPaginated(items, total, in.Page, in.PerPage)}, nil
 }
 
-// projectReadBody is the read shape. Unlike labels/views, models.Project
-// already carries a max_permission field (v1 surfaces it via expand on the
-// list route), so the embed just reuses it rather than declaring a sibling.
+// projectReadBody is the read shape.
 type projectReadBody struct {
 	models.Project
 }
@@ -124,17 +120,10 @@ func projectsRead(ctx context.Context, in *struct {
 		return nil, err
 	}
 	project := &models.Project{ID: in.ID}
-	maxPermission, err := handler.DoReadOne(ctx, project, a)
+	_, err = handler.DoReadOne(ctx, project, a)
 	if err != nil {
 		return nil, translateDomainError(err)
 	}
-	// CanRead returns a real permission for every readable project (including
-	// the Favorites pseudo-project and saved-filter-backed ones), so the field
-	// is always meaningful here — surfaced unconditionally like labels/views.
-	project.MaxPermission = models.Permission(maxPermission)
-	// No ETag/conditional read: a project response carries user-scoped, derived
-	// state (subscription, favorite, views, computed archived state) that
-	// changes without bumping project.Updated, so it's always served fresh.
 	return &singleBody[projectReadBody]{Body: &projectReadBody{Project: *project}}, nil
 }
 
@@ -148,13 +137,10 @@ func projectsCreate(ctx context.Context, in *struct {
 	if err := handler.DoCreate(ctx, &in.Body, a); err != nil {
 		return nil, translateDomainError(err)
 	}
-	// Create/Update don't compute the caller's permission; null says "read it"
-	// rather than echoing the zero value (0 = read), misleading for the owner.
-	in.Body.MaxPermission = models.PermissionUnknown
 	return &singleBody[models.Project]{Body: &in.Body}, nil
 }
 
-// Body matches the read shape so AutoPatch's GET→PUT echo of max_permission validates.
+// Body matches the read shape so AutoPatch's GET→PUT echo validates.
 func projectsUpdate(ctx context.Context, in *struct {
 	ID   int64 `path:"id"`
 	Body projectReadBody
@@ -168,7 +154,6 @@ func projectsUpdate(ctx context.Context, in *struct {
 	if err := handler.DoUpdate(ctx, project, a); err != nil {
 		return nil, translateDomainError(err)
 	}
-	project.MaxPermission = models.PermissionUnknown // see projectsCreate
 	return &singleBody[models.Project]{Body: project}, nil
 }
 

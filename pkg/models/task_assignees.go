@@ -176,7 +176,7 @@ func (la *TaskAssginee) Delete(s *xorm.Session, a web.Auth) (err error) {
 		return err
 	}
 
-	err = updateProjectByTaskID(s, la.TaskID)
+	err = updateProjectLastUpdatedByTaskID(s, la.TaskID)
 	if err != nil {
 		return err
 	}
@@ -188,12 +188,12 @@ func (la *TaskAssginee) Delete(s *xorm.Session, a web.Auth) (err error) {
 	}
 
 	events.DispatchOnCommit(s, &TaskAssigneeDeletedEvent{
-		Task:     &task,
+		Task:     task,
 		Assignee: &user.User{ID: la.UserID},
 		Doer:     doer,
 	})
 	events.DispatchOnCommit(s, &TaskUpdatedEvent{
-		Task: &task,
+		Task: task,
 		Doer: doer,
 	})
 	return nil
@@ -245,10 +245,7 @@ func (t *Task) addNewAssigneeByID(s *xorm.Session, newAssigneeID int64, project 
 		return err
 	}
 	if exist {
-		return &ErrUserAlreadyAssigned{
-			UserID: newAssigneeID,
-			TaskID: t.ID,
-		}
+		return nil
 	}
 
 	_, err = s.Insert(&TaskAssginee{
@@ -259,29 +256,18 @@ func (t *Task) addNewAssigneeByID(s *xorm.Session, newAssigneeID int64, project 
 		return err
 	}
 
-	sub := &Subscription{
-		UserID:     newAssigneeID,
-		EntityType: SubscriptionEntityTask,
-		EntityID:   t.ID,
-	}
-
-	err = sub.Create(s, newAssignee)
-	if err != nil && !IsErrSubscriptionAlreadyExists(err) {
-		return err
-	}
-
 	doer := doerFromAuth(s, auth)
-	task, err := GetTaskSimple(s, &Task{ID: t.ID})
+	task, err := GetTaskSimple(s, t.ID)
 	if err != nil {
 		return err
 	}
 	events.DispatchOnCommit(s, &TaskAssigneeCreatedEvent{
-		Task:     &task,
+		Task:     task,
 		Assignee: newAssignee,
 		Doer:     doer,
 	})
 	events.DispatchOnCommit(s, &TaskUpdatedEvent{
-		Task: &task,
+		Task: task,
 		Doer: doer,
 	})
 

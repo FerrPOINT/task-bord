@@ -25,10 +25,8 @@ import (
 	"time"
 
 	"github.com/FerrPOINT/task-bord/pkg/config"
-	"github.com/FerrPOINT/task-bord/pkg/db"
 	"github.com/FerrPOINT/task-bord/pkg/events"
 	"github.com/FerrPOINT/task-bord/pkg/log"
-	"github.com/FerrPOINT/task-bord/pkg/models"
 	"github.com/FerrPOINT/task-bord/pkg/modules/humaecho5"
 	"github.com/FerrPOINT/task-bord/pkg/user"
 	"github.com/FerrPOINT/task-bord/pkg/web"
@@ -108,29 +106,11 @@ type IssuedUserToken struct {
 	CookieMaxAge int
 }
 
-// IssueUserToken creates a session for the user and mints a JWT access token plus
-// a refresh token for it. It is the transport-agnostic core both v1 (which writes
-// the echo response) and v2 (Huma) call; callers set the refresh cookie and the
-// Cache-Control header themselves via WriteUserAuthCookies. Pass oidc for
-// OpenID Connect logins to store the logout data; nil otherwise.
-func IssueUserToken(ctx context.Context, u *user.User, deviceInfo, ipAddress string, long bool, oidc *models.SessionOIDCData) (*IssuedUserToken, error) {
-	s := db.NewSession()
-	defer s.Close()
-
-	session, err := models.CreateSession(s, u.ID, deviceInfo, ipAddress, long, oidc)
+// IssueUserToken mints a JWT access token for the user.
+// No server-side session is created in the MVP.
+func IssueUserToken(ctx context.Context, u *user.User, deviceInfo, ipAddress string, long bool, oidc interface{}) (*IssuedUserToken, error) {
+	token, err := NewUserJWTAuthtoken(u, "")
 	if err != nil {
-		_ = s.Rollback()
-		return nil, err
-	}
-
-	t, err := NewUserJWTAuthtoken(u, session.ID)
-	if err != nil {
-		_ = s.Rollback()
-		return nil, err
-	}
-
-	if err := s.Commit(); err != nil {
-		_ = s.Rollback()
 		return nil, err
 	}
 
@@ -138,15 +118,10 @@ func IssueUserToken(ctx context.Context, u *user.User, deviceInfo, ipAddress str
 		log.Errorf("Could not dispatch login succeeded event: %s", err)
 	}
 
-	cookieMaxAge := int(config.ServiceJWTTTL.GetInt64())
-	if long {
-		cookieMaxAge = int(config.ServiceJWTTTLLong.GetInt64())
-	}
-
 	return &IssuedUserToken{
-		AccessToken:  t,
-		RefreshToken: session.RefreshToken,
-		CookieMaxAge: cookieMaxAge,
+		AccessToken:  token,
+		RefreshToken: "",
+		CookieMaxAge: 0,
 	}, nil
 }
 
@@ -161,8 +136,7 @@ func WriteUserAuthCookies(c *echo.Context, token *IssuedUserToken) {
 }
 
 // NewUserAuthTokenResponse creates a new user auth token response from a user object.
-// Pass oidc for OpenID Connect logins to store the logout data; nil otherwise.
-func NewUserAuthTokenResponse(u *user.User, c *echo.Context, long bool, oidc *models.SessionOIDCData) error {
+func NewUserAuthTokenResponse(u *user.User, c *echo.Context, long bool, oidc interface{}) error {
 	token, err := IssueUserToken(c.Request().Context(), u, c.Request().UserAgent(), c.RealIP(), long, oidc)
 	if err != nil {
 		return err
@@ -246,23 +220,17 @@ func CreateUserWithRandomUsername(s *xorm.Session, uu *user.User) (u *user.User,
 		if uu.Username == "" {
 			uu.Username = petname.Generate(3, "-")
 		}
-
 		u, err = user.CreateUser(s, uu)
 		if err == nil {
 			break
 		}
-
 		if !user.IsErrUsernameExists(err) {
 			return nil, err
 		}
-
 		// If their preferred username is already taken, generate a new one
 		uu.Username = petname.Generate(3, "-")
 	}
-
-	// And create their project
-	err = models.CreateNewProjectForUser(s, u)
-	return
+	return u, nil
 }
 
 // RefreshResult holds the result of a successful session refresh.
@@ -274,107 +242,14 @@ type RefreshResult struct {
 	SessionID       string
 }
 
-// RefreshSession looks up a session by its raw refresh token, validates it,
-// rotates the refresh token, fetches the user, and generates a new JWT.
-// It handles its own DB session (open/commit/rollback).
-//
-// On user status errors (disabled/locked), the session is deleted before
-// returning the error so the caller can handle cleanup (e.g. clearing cookies).
+// RefreshSession is disabled in the MVP without server-side sessions.
 func RefreshSession(rawRefreshToken string) (*RefreshResult, error) {
-	s := db.NewSession()
-	defer s.Close()
-
-	session, err := models.GetSessionByRefreshToken(s, rawRefreshToken)
-	if err != nil {
-		_ = s.Rollback()
-		if models.IsErrSessionNotFound(err) {
-			return nil, echo.NewHTTPError(http.StatusUnauthorized, "Invalid or expired refresh token.")
-		}
-		return nil, err
-	}
-
-	maxAge := time.Duration(config.ServiceJWTTTL.GetInt64()) * time.Second
-	if session.IsLongSession {
-		maxAge = time.Duration(config.ServiceJWTTTLLong.GetInt64()) * time.Second
-	}
-	if time.Since(session.LastActive) > maxAge {
-		if _, err := s.Where("id = ?", session.ID).Delete(&models.Session{}); err != nil {
-			_ = s.Rollback()
-			return nil, err
-		}
-		if err := s.Commit(); err != nil {
-			return nil, err
-		}
-		return nil, echo.NewHTTPError(http.StatusUnauthorized, "Session expired.")
-	}
-
-	if err := models.UpdateSessionLastActive(s, session.ID); err != nil {
-		_ = s.Rollback()
-		return nil, err
-	}
-
-	newRawToken, err := models.RotateRefreshToken(s, session)
-	if err != nil {
-		_ = s.Rollback()
-		if models.IsErrSessionNotFound(err) {
-			return nil, echo.NewHTTPError(http.StatusUnauthorized, "Refresh token already used.")
-		}
-		return nil, err
-	}
-
-	u, err := user.GetUserByID(s, session.UserID)
-	if err != nil {
-		if user.IsErrUserStatusError(err) {
-			if _, delErr := s.Where("id = ?", session.ID).Delete(&models.Session{}); delErr != nil {
-				_ = s.Rollback()
-				return nil, delErr
-			}
-			if commitErr := s.Commit(); commitErr != nil {
-				return nil, commitErr
-			}
-			return nil, err
-		}
-		_ = s.Rollback()
-		return nil, err
-	}
-
-	accessToken, err := NewUserJWTAuthtoken(u, session.ID)
-	if err != nil {
-		_ = s.Rollback()
-		return nil, err
-	}
-
-	if err := s.Commit(); err != nil {
-		return nil, err
-	}
-
-	return &RefreshResult{
-		AccessToken:     accessToken,
-		NewRefreshToken: newRawToken,
-		ExpiresIn:       config.ServiceJWTTTLShort.GetInt64(),
-		IsLongSession:   session.IsLongSession,
-		SessionID:       session.ID,
-	}, nil
+	return nil, echo.NewHTTPError(http.StatusUnauthorized, "Refresh tokens are not supported in this build.")
 }
 
-// SessionIDFromContext reads the session id (the `sid` claim) off the user JWT
-// in the echo context. It returns "" when there is no user JWT or no sid claim
-// (API tokens and link shares carry no session), which callers treat as a no-op.
+// SessionIDFromContext is a no-op in the MVP without server-side sessions.
 func SessionIDFromContext(c *echo.Context) string {
-	raw := c.Get("user")
-	if raw == nil {
-		return ""
-	}
-	jwtinf, ok := raw.(*jwt.Token)
-	if !ok {
-		return ""
-	}
-	claims, ok := jwtinf.Claims.(jwt.MapClaims)
-	if !ok {
-		return ""
-	}
-	sid, _ := claims["sid"].(string)
-	return sid
+	return ""
 }
 
 // GetAuthFromContext retrieves the authenticated web.Auth from a plain

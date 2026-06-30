@@ -104,14 +104,7 @@ func FullInit() {
 
 	// Start the cron
 	cron.Init()
-	models.RegisterReminderCron()
-	models.RegisterOverdueReminderCron()
-	models.RegisterUserDeletionCron()
-	models.RegisterOldExportCleanupCron()
-	models.RegisterAddTaskToFilterViewCron()
 	user.RegisterTokenCleanupCron()
-	models.RegisterSessionCleanupCron()
-	user.RegisterDeletionNotificationCron()
 
 	// Initialize WebSocket hub
 	ws.InitHub()

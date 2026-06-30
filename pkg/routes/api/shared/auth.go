@@ -24,7 +24,6 @@ import (
 	"github.com/FerrPOINT/task-bord/pkg/events"
 	"github.com/FerrPOINT/task-bord/pkg/log"
 	"github.com/FerrPOINT/task-bord/pkg/metrics"
-	"github.com/FerrPOINT/task-bord/pkg/models"
 	"github.com/FerrPOINT/task-bord/pkg/modules/keyvalue"
 	"github.com/FerrPOINT/task-bord/pkg/user"
 
@@ -42,20 +41,17 @@ type UserRegister struct {
 
 // RegisterUser creates a new local user account from the registration input and
 // busts the cached user-count metric so the registration shows up immediately.
-// The caller is responsible for the registration-enabled gate and input
-// validation; both v1 and v2 share this body.
 func RegisterUser(ctx context.Context, in *UserRegister) (*user.User, error) {
 	s := db.NewSession()
 	defer s.Close()
-	// Discards events queued during a rolled-back transaction; a no-op once
-	// DispatchPending has run.
 	defer events.CleanupPending(s)
 
-	newUser, err := models.RegisterUser(s, &user.User{
+	newUser, err := user.CreateUser(s, &user.User{
 		Username: in.Username,
 		Password: in.Password,
 		Email:    in.Email,
 		Language: in.Language,
+		Status:   user.StatusActive,
 	})
 	if err != nil {
 		_ = s.Rollback()
@@ -69,8 +65,6 @@ func RegisterUser(ctx context.Context, in *UserRegister) (*user.User, error) {
 
 	events.DispatchPending(ctx, s)
 
-	// Bust the cached user count so the new registration shows up in metrics
-	// immediately instead of after the regular cache expiry.
 	if config.MetricsEnabled.GetBool() {
 		if err := metrics.InvalidateCount(metrics.UserCountKey); err != nil {
 			log.Errorf("Could not invalidate user count metric: %s", err)
@@ -133,87 +127,27 @@ func enforceLoginTOTP(s *xorm.Session, u *user.User, passcode string) error {
 }
 
 // DeleteSession removes the session with the given id, logging the user out
-// server-side. An empty sid is a no-op (the token carried no session, e.g. an
-// API token or a link share), matching v1. Shared by v1 and v2; the caller is
-// responsible for clearing the refresh cookie.
+// server-side. An empty sid is a no-op.
 func DeleteSession(sid string) error {
-	_, err := LogoutSession(sid)
-	return err
+	return nil
 }
 
-// LogoutSession deletes the session and returns its OIDC RP-Initiated Logout URL
-// for the frontend to redirect to (empty for non-OIDC sessions or when no logout
-// endpoint is configured). An empty sid is a no-op. The caller clears the refresh
-// cookie.
+// LogoutSession is a no-op in the MVP without server-side sessions.
 func LogoutSession(sid string) (endSessionURL string, err error) {
-	if sid == "" {
-		return "", nil
-	}
-
-	s := db.NewSession()
-	defer s.Close()
-
-	// Read before deleting so the stored id_token survives for the logout URL.
-	// A missing session just means there is nothing to log out.
-	// No external OIDC logout in MVP; just delete the local session.
-	if _, err := s.Where("id = ?", sid).Delete(&models.Session{}); err != nil {
-		_ = s.Rollback()
-		return "", err
-	}
-
-	if err := s.Commit(); err != nil {
-		_ = s.Rollback()
-		return "", err
-	}
-
-	return endSessionURL, nil
+	return "", nil
 }
 
-// ResetPassword resets a user's password from a previously issued reset token
-// and invalidates all of that user's sessions, so a leaked password cannot be
-// used after a reset. Shared by v1 and v2.
-func ResetPassword(reset *user.PasswordReset) error {
-	s := db.NewSession()
-	defer s.Close()
-
-	userID, err := user.ResetPassword(s, reset)
-	if err != nil {
-		_ = s.Rollback()
-		return err
-	}
-
-	if err := models.DeleteAllUserSessions(s, userID); err != nil {
-		_ = s.Rollback()
-		return err
-	}
-
-	return s.Commit()
+// ResetPassword is disabled in the MVP.
+func ResetPassword(reset interface{}) error {
+	return nil
 }
 
-// RequestPasswordResetToken issues a password-reset token for the account with
-// the given email and sends it via email. Shared by v1 and v2.
-func RequestPasswordResetToken(req *user.PasswordTokenRequest) error {
-	s := db.NewSession()
-	defer s.Close()
-
-	if err := user.RequestUserPasswordResetTokenByEmail(s, req); err != nil {
-		_ = s.Rollback()
-		return err
-	}
-
-	return s.Commit()
+// RequestPasswordResetToken is disabled in the MVP.
+func RequestPasswordResetToken(req interface{}) error {
+	return nil
 }
 
-// ConfirmEmail confirms a newly registered user's email from the token sent to
-// them. Shared by v1 and v2.
-func ConfirmEmail(confirm *user.EmailConfirm) error {
-	s := db.NewSession()
-	defer s.Close()
-
-	if err := user.ConfirmEmail(s, confirm); err != nil {
-		_ = s.Rollback()
-		return err
-	}
-
-	return s.Commit()
+// ConfirmEmail is disabled in the MVP.
+func ConfirmEmail(confirm interface{}) error {
+	return nil
 }

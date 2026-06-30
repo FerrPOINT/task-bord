@@ -75,7 +75,12 @@ func (l *Label) hasAccessToLabel(s *xorm.Session, a web.Auth) (has bool, maxPerm
 
 	accessibleProjects := builder.In(
 		"project_id",
-		getUserProjectsStatement(a.GetID(), "").Select("l.id"),
+		builder.Select("id").From("projects").Where(
+			builder.Or(
+				builder.Eq{"owner_id": a.GetID()},
+				builder.In("id", builder.Select("project_id").From("project_users").Where(builder.Eq{"user_id": a.GetID()})),
+			),
+		),
 	)
 
 	labelAttachedToAccessibleTask := builder.In(
